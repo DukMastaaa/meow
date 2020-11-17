@@ -1,0 +1,309 @@
+# Python global stuff 
+global !p
+
+# https://github.com/gillescastel/latex-snippets/blob/master/tex.snippets
+
+texMathZones = ['texMathZone' + x for x in 
+    ['A', 'AS', 'B', 'BS', 'C', 'CS', 'D', 'DS', 'E', 'ES', 'F', 'FS', 'G', 
+    'GS', 'H', 'HS', 'I', 'IS', 'J', 'JS', 'K', 'KS', 'L', 'LS', 'DS', 'V', 
+    'W', 'X', 'Y', 'Z', 'AmsA', 'AmsB', 'AmsC', 'AmsD', 'AmsE', 'AmsF', 'AmsG', 
+    'AmsAS', 'AmsBS', 'AmsCS', 'AmsDS', 'AmsES', 'AmsFS', 'AmsGS']
+]
+
+texIgnoreMathZones = ['texMathText']
+texMathZoneIds = vim.eval('map('+str(texMathZones)+", 'hlID(v:val)')")
+texIgnoreMathZoneIds = vim.eval('map('+str(texIgnoreMathZones)+", 'hlID(v:val)')")
+ignore = texIgnoreMathZoneIds[0]
+
+
+def gillescheck():
+    synstackids = vim.eval("synstack(line('.'), col('.') - (col('.')>=2 ? 1 : 0))")
+    if not set(texIgnoreMathZoneIds).isdisjoint(synstackids):
+        return False
+    return not set(texMathZoneIds).isdisjoint(synstackids)
+    # isdisjoint() can short-circuit as soon as a match is found
+
+def aligncheck(localsnip):
+    # checks whether cursor is within a begin{align*} or end{align*} 
+    # adapted from https://vi.stackexchange.com/questions/26796/can-this-be-done-with-ultisnips 
+    beginpos = vim.eval("searchpairpos('\\\\begin{align*}','','\\\\end{align*}','bnWz')")
+    endpos   = vim.eval("searchpairpos('\\\\begin{align*}','','\\\\end{align*}', 'nWz')")
+    try:
+        # curpos   = snip.cursor.to_vim_cursor()
+        curpos = localsnip.cursor.to_vim_cursor()
+    except AttributeError:
+        raise ValueError(dir(localsnip))
+    if beginpos == ['0','0'] or endpos == ['0','0']: return False
+    if posCompare(beginpos, curpos) < 0 and posCompare(curpos, endpos) < 0:
+        return True
+    else:
+        return False
+
+def posCompare(cur1, cur2):
+    """ returns -1 if cur1 is before cur2, +1 if after, and 0 if cur1==cur2
+        cur1, cur2 are required to be lists of the form [row,col]
+    """
+    cur1r = int(cur1[0])
+    cur1c = int(cur1[1])
+    cur2r = int(cur2[0])
+    cur2c = int(cur2[1])
+    if cur1r < cur2r:
+        return -1
+    elif cur1r > cur2r:
+        return 1
+    else:
+        if cur1c < cur2c:
+            return -1
+        elif cur1c > cur2c:
+            return 1
+        else: 
+            return 0
+
+def math():
+    return gillescheck()
+
+def math2(localsnip):
+    raise ValueError(str(aligncheck(localsnip)))
+
+endglobal
+
+# LaTeX tags
+snippet \begin "begin"
+\\begin{$1}
+    $0
+\\end{$1}
+endsnippet
+
+snippet \align "\\begin{align*}"
+\\begin{align*}
+    $0
+\\end{align*}
+endsnippet
+
+snippet \enum "\\begin{enumerate}"
+\\begin{enumerate}
+    \\item $0
+\\end{enumerate}
+endsnippet
+
+snippet \item "\\begin{itemize}"
+\\begin{itemize}
+    \\item $0
+\\end{itemize}
+endsnippet
+
+snippet \ "inline math" w
+\\($1\\)$0
+endsnippet
+
+snippet \[ "display math" w
+\\[$1\\]$0
+endsnippet
+
+# Quantifiers and Logic
+context "math()"
+snippet fa "\forall" wA
+\\forall
+endsnippet
+
+context "math()"
+snippet ee "\exists" wA
+\\exists
+endsnippet
+
+context "math()"
+snippet nee "\nexists" wA
+\\nexists
+endsnippet
+
+context "math()"
+snippet imp "\implies" wA
+\\implies
+endsnippet
+
+context "math()"
+snippet rimp "\impliedby" wA
+\\impliedby
+endsnippet
+
+# Sequences and Limits
+context "math()"
+snippet seq "sequence" wA
+($1_{${2:n}})^{\infty}_{$2=1}
+endsnippet
+
+context "math()"
+snippet limm "limit" wA
+\lim_{$1 \to $2}$0
+endsnippet
+
+context "math()"
+snippet limsup "limsup" wA
+\limsup_{$1 \to $2}$0
+endsnippet
+
+context "math()"
+snippet liminf "liminf" wA
+\liminf_{$1 \to $2}$0
+endsnippet
+
+# Derivatives, Integrals, Sums, Products 
+context "math()"
+snippet nint "definite integral" wA
+\\int_{$1}^{$2} $0
+endsnippet
+
+context "math()"
+snippet "(?<!\\)(int)" "indefinite integral" rwA
+\\int
+endsnippet
+
+context "math()"
+snippet sum "sum with limits" wA
+\\sum_{$1}^{$2}
+endsnippet
+
+context "math()"
+snippet isum "infinite sum" wA
+\\sum_{$1}^{\infty}
+endsnippet
+
+context "math()"
+snippet prod "product with limits" wA
+\\prod_{$1}^{$2}
+endsnippet
+
+context "math()"
+snippet iprod "infinite product" wA
+\\prod_{$1}^{\infty}
+endsnippet
+
+context "math()"
+snippet der "derivative" wA
+\\deriv
+endsnippet
+
+# Operators, Fractions 
+context "math()"
+snippet // "fraction" wA
+\\frac{$1}{$2}$0
+endsnippet
+
+context "math()"
+snippet d// "derivative fraction" wA
+\\derivfrac{$1}{$2}$0
+endsnippet
+
+context "math()"
+snippet abs "absolute value" wA
+\\abs{$1}$0
+endsnippet
+
+context "math()"
+snippet times "\\times" wA
+\\times
+endsnippet
+
+context "math()"
+snippet sq "squared" iA
+^{2}
+endsnippet
+
+context "math()"
+snippet cb "cubed" iA
+^{3}
+endsnippet
+
+context "math()"
+snippet pow "exponent" iA
+^{$1}$0
+endsnippet
+
+context "math()"
+snippet sub "subscript" iA
+_{$1}$0
+endsnippet
+
+context "math()"
+snippet "(?<!\\)(leq|geq|neq)" "leq, geq, neq" rwA
+`!p snip.rv = "\\" + match.group(1)`
+endsnippet
+
+context "math()"
+snippet lt "<" wA
+<
+endsnippet
+
+context "math()"
+snippet gt ">" wA
+>
+endsnippet
+
+context "math()"
+snippet inn "\\in" wA
+\\in
+endsnippet
+
+context "math()"
+snippet "(?<!\\)(notin)" "\\notin" rwA
+\\notin
+endsnippet
+
+# Brackets, Braces, Parentheses
+context "math()"
+snippet lrp "left and right paren" wA
+\\left($1\\right)$0
+endsnippet
+
+context "math()"
+snippet lr[ "left and right squ bracket" wA
+\\left[$1\\right]$0
+endsnippet
+
+context "math()"
+snippet lrb "left and right braces" wA
+\\left{$1\\right}$0
+endsnippet
+
+snippet { "manual braces" w
+\\{$1\\}$0
+endsnippet
+
+# Symbols 
+# Greek letters
+# Lowercase
+context "math()"
+snippet "(?<!\\)(alpha|beta|gamma|delta|sigma|theta|mu|pi|rho|sigma|tau|varphi|omega)" "lowercase-greek-verbatim" rwA
+`!p snip.rv = "\\" + match.group(1)`
+endsnippet
+
+# (lowercase-greek-abbreviated)
+context "math()"
+snippet vareps "\\varepsilon" wA
+\\varepsilon
+endsnippet
+
+context "math()"
+snippet lam "\\lambda" wA
+\\lambda
+endsnippet
+
+# Uppercase
+context "math()"
+snippet "(?<!\\)(Delta|Omega)" "uppercase-greek-verbatim" rwA
+`!p snip.rv = "\\" + match.group(1)`
+endsnippet
+
+context "math()"
+snippet "bb(.)" "\\mathbb{R}" rwA
+`!p snip.rv = "\\mathbb{" + match.group(1).upper() + "}"`
+endsnippet
+
+context "math()"
+snippet "(?<!\\)(infty)" "\\infty" rwA
+\\infty
+endsnippet
+
+snippet testing "testing" "math2(snip)" eb
+beans
+endsnippet
