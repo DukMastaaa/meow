@@ -26,18 +26,11 @@ def gillescheck():
 def aligncheck(localsnip):
     # checks whether cursor is within a begin{align*} or end{align*} 
     # adapted from https://vi.stackexchange.com/questions/26796/can-this-be-done-with-ultisnips 
-    beginpos = vim.eval("searchpairpos('\\\\begin{align*}','','\\\\end{align*}','bnWz')")
-    endpos   = vim.eval("searchpairpos('\\\\begin{align*}','','\\\\end{align*}', 'nWz')")
-    try:
-        # curpos   = snip.cursor.to_vim_cursor()
-        curpos = localsnip.cursor.to_vim_cursor()
-    except AttributeError:
-        raise ValueError(dir(localsnip))
+    beginpos = vim.eval(r"searchpairpos('\M\\begin{align*}','', '\M\\end{align*}', 'bnW')")
+    endpos   = vim.eval(r"searchpairpos('\M\\begin{align*}','', '\M\\end{align*}', 'nW')")
+    curpos = localsnip.cursor.to_vim_cursor()
     if beginpos == ['0','0'] or endpos == ['0','0']: return False
-    if posCompare(beginpos, curpos) < 0 and posCompare(curpos, endpos) < 0:
-        return True
-    else:
-        return False
+    return posCompare(beginpos, curpos) < 0 and posCompare(curpos, endpos) < 0
 
 def posCompare(cur1, cur2):
     """ returns -1 if cur1 is before cur2, +1 if after, and 0 if cur1==cur2
@@ -59,11 +52,8 @@ def posCompare(cur1, cur2):
         else: 
             return 0
 
-def math():
-    return gillescheck()
-
-def math2(localsnip):
-    raise ValueError(str(aligncheck(localsnip)))
+def math(localsnip):
+    return gillescheck() or aligncheck(localsnip)
 
 endglobal
 
@@ -101,166 +91,171 @@ snippet \[ "display math" w
 endsnippet
 
 # Quantifiers and Logic
-context "math()"
+context "math(snip)"
 snippet fa "\forall" wA
 \\forall
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet ee "\exists" wA
 \\exists
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet nee "\nexists" wA
 \\nexists
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet imp "\implies" wA
 \\implies
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet rimp "\impliedby" wA
 \\impliedby
 endsnippet
 
 # Sequences and Limits
-context "math()"
+context "math(snip)"
 snippet seq "sequence" wA
 ($1_{${2:n}})^{\infty}_{$2=1}
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet limm "limit" wA
 \lim_{$1 \to $2}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet limsup "limsup" wA
 \limsup_{$1 \to $2}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet liminf "liminf" wA
 \liminf_{$1 \to $2}$0
 endsnippet
 
 # Derivatives, Integrals, Sums, Products 
-context "math()"
-snippet nint "definite integral" wA
+context "math(snip)"
+snippet nint "definite integral" A
 \\int_{$1}^{$2} $0
 endsnippet
 
-context "math()"
-snippet "(?<!\\)(int)" "indefinite integral" rwA
+context "math(snip)"
+snippet "(?<!\\)(int)" "indefinite integral" rA
 \\int
 endsnippet
 
-context "math()"
-snippet sum "sum with limits" wA
+context "math(snip)"
+snippet sum "sum with limits" A
 \\sum_{$1}^{$2}
 endsnippet
 
-context "math()"
-snippet isum "infinite sum" wA
+context "math(snip)"
+snippet isum "infinite sum" A
 \\sum_{$1}^{\infty}
 endsnippet
 
-context "math()"
-snippet prod "product with limits" wA
+context "math(snip)"
+snippet prod "product with limits" A
 \\prod_{$1}^{$2}
 endsnippet
 
-context "math()"
-snippet iprod "infinite product" wA
+context "math(snip)"
+snippet iprod "infinite product" A
 \\prod_{$1}^{\infty}
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet der "derivative" wA
 \\deriv
 endsnippet
 
 # Operators, Fractions 
-context "math()"
-snippet // "fraction" wA
+context "math(snip)"
+snippet // "fraction" A
 \\frac{$1}{$2}$0
 endsnippet
 
-context "math()"
-snippet d// "derivative fraction" wA
+context "math(snip)"
+snippet \fr "fraction" i
+\\frac{$1}{$2}$0
+endsnippet
+
+context "math(snip)"
+snippet d// "derivative fraction" A
 \\derivfrac{$1}{$2}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet abs "absolute value" wA
 \\abs{$1}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet times "\\times" wA
 \\times
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet sq "squared" iA
 ^{2}
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet cb "cubed" iA
 ^{3}
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet pow "exponent" iA
 ^{$1}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet sub "subscript" iA
 _{$1}$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet "(?<!\\)(leq|geq|neq)" "leq, geq, neq" rwA
 `!p snip.rv = "\\" + match.group(1)`
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet lt "<" wA
 <
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet gt ">" wA
 >
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet inn "\\in" wA
 \\in
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet "(?<!\\)(notin)" "\\notin" rwA
 \\notin
 endsnippet
 
 # Brackets, Braces, Parentheses
-context "math()"
+context "math(snip)"
 snippet lrp "left and right paren" wA
 \\left($1\\right)$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet lr[ "left and right squ bracket" wA
 \\left[$1\\right]$0
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet lrb "left and right braces" wA
 \\left{$1\\right}$0
 endsnippet
@@ -272,38 +267,35 @@ endsnippet
 # Symbols 
 # Greek letters
 # Lowercase
-context "math()"
+context "math(snip)"
 snippet "(?<!\\)(alpha|beta|gamma|delta|sigma|theta|mu|pi|rho|sigma|tau|varphi|omega)" "lowercase-greek-verbatim" rwA
 `!p snip.rv = "\\" + match.group(1)`
 endsnippet
 
 # (lowercase-greek-abbreviated)
-context "math()"
+context "math(snip)"
 snippet vareps "\\varepsilon" wA
 \\varepsilon
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet lam "\\lambda" wA
 \\lambda
 endsnippet
 
 # Uppercase
-context "math()"
+context "math(snip)"
 snippet "(?<!\\)(Delta|Omega)" "uppercase-greek-verbatim" rwA
 `!p snip.rv = "\\" + match.group(1)`
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet "bb(.)" "\\mathbb{R}" rwA
 `!p snip.rv = "\\mathbb{" + match.group(1).upper() + "}"`
 endsnippet
 
-context "math()"
+context "math(snip)"
 snippet "(?<!\\)(infty)" "\\infty" rwA
 \\infty
 endsnippet
 
-snippet testing "testing" "math2(snip)" eb
-beans
-endsnippet
