@@ -219,6 +219,12 @@ snippet sub "subscript" iA
 _{$1}$0
 endsnippet
 
+# from gilles
+context "math(snip)"
+snippet '([A-Za-z])(\d)' "auto subscript" wrA
+`!p snip.rv = match.group(1)`_`!p snip.rv = match.group(2)`
+endsnippet
+
 context "math(snip)"
 snippet "(?<!\\)(leq|geq|neq)" "leq, geq, neq" rwA
 `!p snip.rv = "\\" + match.group(1)`
@@ -242,6 +248,16 @@ endsnippet
 context "math(snip)"
 snippet "(?<!\\)(notin)" "\\notin" rwA
 \\notin
+endsnippet
+
+context "math(snip)"
+snippet "rrt" "square root" iA
+\\sqrt{$1}{$0}
+endsnippet
+
+context "math(snip)"
+snippet "rrn" "variable root" iA
+\\sqrt[$1]{$2}$0
 endsnippet
 
 # Brackets, Braces, Parentheses
