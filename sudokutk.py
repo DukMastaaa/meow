@@ -8,32 +8,39 @@ Position = Tuple[int, int]
 OptPosition = Tuple[Optional[int], Optional[int]]
 
 # some sample sudoku num found on wikipedia
+# SAMPLE_NUMBER_STR = \
+#     "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
 SAMPLE_NUMBER_STR = \
-    "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+    "435269781682571493197834562826195347374682915951743628519326874248957006763418259"
 
 
-class Grid(object):
+class BaseGrid(object):
     def __init__(self, number_str: str):
         """
         :param number_str: string with numbers in row-major order.
                            blanks should be 0.
         """
-        self.guesses, self.hint_locations = self._create_guess(number_str)
+        self.guesses, self.given_locations, self.no_given_locations = \
+            self._create_guess(number_str)
         self.notes = self._create_notes()
 
     @staticmethod
-    def _create_guess(number_str: str) -> Tuple[List[List[int]], List[Position]]:
+    def _create_guess(number_str: str) -> Tuple[List[List[int]], List[Position], List[Position]]:
+        """:returns: (guesses, given_locations, no_given_locations)"""
         guess_list = [[] for _ in range(9)]
-        hint_locations = []
+        given_locations = []
+        no_given_locations = []
 
         for index, row in enumerate(guess_list):
             row.extend((int(num) for num in number_str[index * 9:(index + 1) * 9]))
         for i in range(9):
             for j in range(9):
                 if guess_list[i][j] != 0:
-                    hint_locations.append((i, j))
+                    given_locations.append((i, j))
+                else:
+                    no_given_locations.append((i, j))
 
-        return guess_list, hint_locations
+        return guess_list, given_locations, no_given_locations
 
     @staticmethod
     def _create_notes() -> List[List[List]]:
@@ -57,6 +64,56 @@ class Grid(object):
 
     def notes_at(self, row, col) -> List[int]:
         return self.notes[row][col]
+
+    def sudoku_complete(self) -> bool:
+        for index in range(9):
+            # row, column
+            row = self.guesses[index]
+            column = list(self.guesses[col_index][index] for col_index in range(9))
+            if 0 in row or len(set(row)) != 9 or 0 in column or len(set(column)) != 9:
+                return False
+
+            # 3x3 square
+            row_start = 3 * (index // 3)
+            row_end = 3 * (index // 3 + 1)
+            col_start = 3 * (index % 3)
+            col_end = 3 * (index % 3 + 1)
+            square = (self.guesses[row_index][col_index]
+                      for row_index in range(row_start, row_end)
+                      for col_index in range(col_start, col_end))
+            if len(set(square)) != 9:
+                return False
+        return True
+
+
+class GridSolver(BaseGrid):
+    def __init__(self, number_str: str):
+        super().__init__(number_str)
+
+    def calculate_possibilities(self) -> None:
+        """Calculates possibilities for each non-given cell and saves in self.notes.
+
+        This does not take other cells' possible values into consideration - possible
+        optimisation here, but it would be tough.
+        """
+        for cell_row, cell_col in self.no_given_locations:
+            choices = set(i for i in range(1, 10))
+            for index in range(9):  # rows, cols
+                number_on_col = self.guess_at(cell_row, index)
+                number_on_row = self.guess_at(index, cell_col)
+                if number_on_col in choices:
+                    choices.remove(number_on_col)
+                if number_on_row in choices:
+                    choices.remove(number_on_row)
+            
+
+
+
+
+
+class GridModel(BaseGrid):
+    def __init__(self, number_str: str):
+        super().__init__(number_str)
 
     def _remove_guess(self, row, col) -> None:
         self.guesses[row][col] = 0
@@ -82,8 +139,8 @@ class Grid(object):
             else:
                 self._remove_one_note(row, col, num)
 
-    def _remove_hints_for_guess(self, row, col, num) -> None:
-        """Removes hints of same num in 3x3square, row, col of the guess."""
+    def _remove_notes_for_guess(self, row, col, num) -> None:
+        """Removes notes of same num in 3x3square, row, col of the guess."""
         # traverse same row, same col
         for index in range(9):
             if index != col and num in self.notes_at(row, index):
@@ -101,34 +158,14 @@ class Grid(object):
         self.guesses[row][col] = num
 
     def toggle_guess(self, row, col, num) -> None:
-        if (row, col) not in self.hint_locations:
+        if (row, col) not in self.given_locations:
             if self.guess_at(row, col) == num:
                 self._remove_guess(row, col)
             else:
                 if self.notes_at(row, col):
                     self.notes[row][col].clear()
                 self._add_guess(row, col, num)
-                self._remove_hints_for_guess(row, col, num)
-
-    def sudoku_complete(self) -> bool:
-        for index in range(9):
-            # row, column
-            row = self.guesses[index]
-            column = (self.guesses[col_index][index] for col_index in range(9))
-            if 0 in row or len(set(row)) != 9 or 0 in column or len(set(column)) != 9:
-                return False
-
-            # 3x3 square
-            row_start = 3 * (index // 3)
-            row_end = 3 * (index // 3 + 1)
-            col_start = 3 * (index % 3)
-            col_end = 3 * (index % 3 + 1)
-            square = (self.guesses[row_index][col_index]
-                      for row_index in range(row_start, row_end)
-                      for col_index in range(col_start, col_end))
-            if len(set(square)) != 9:
-                return False
-        return True
+                self._remove_notes_for_guess(row, col, num)
 
 
 class GridView(tk.Canvas):
@@ -206,7 +243,7 @@ class GridView(tk.Canvas):
         text_x, text_y = self._get_centre_coordinate(position)
         self.create_text(text_x, text_y, anchor=tk.CENTER, font="Arial", text=str(number))
 
-    def _draw_hint(self, position: Position, number: int) -> None:
+    def _draw_given(self, position: Position, number: int) -> None:
         text_x, text_y = self._get_centre_coordinate(position)
         self.create_text(
             text_x, text_y, anchor=tk.CENTER, fill="blue", font="Arial", text=str(number)
@@ -242,15 +279,15 @@ class GridView(tk.Canvas):
             )
 
     def draw_grid(self, guesses: List[List[int]], notes: List[List[List[int]]],
-                  hint_locations: List[Position]) -> None:
+                  given_locations: List[Position]) -> None:
         self.delete(tk.ALL)  # ineffiicenttnttt aaaaaaaaaaaaaaaaaaaaaaaaa
         for row in range(self._grid_size):
             for col in range(self._grid_size):
                 self._draw_one_cell((row, col))
                 this_guess = guesses[row][col]
                 if this_guess != 0:
-                    if (row, col) in hint_locations:
-                        self._draw_hint((row, col), this_guess)
+                    if (row, col) in given_locations:
+                        self._draw_given((row, col), this_guess)
                     else:
                         self._draw_guess((row, col), this_guess)
                 else:  # just in case there's notes *and* guess for the same cell
@@ -291,12 +328,14 @@ class StopwatchFrame(tk.Frame):
         self._current_time = starting_time
         self._is_timing = False
 
-        self._time_display_label = tk.Label(self, text=self.format_time(starting_time))
+        self._time_display_label = tk.Label(self, text=self.format_time(starting_time),
+                                            font=("Arial", 18))
         self._time_display_label.pack(side=tk.TOP, expand=True)
 
         self._after_ids = []
 
-    def format_time(self, seconds: int) -> str:
+    @staticmethod
+    def format_time(seconds: int) -> str:
         """Returns a string converting the amount of seconds into minutes and seconds.
 
         Parameters:
@@ -368,7 +407,7 @@ class SudokuController(object):
 
         self._note_mode = tk.BooleanVar()
         self._note_mode.set(False)
-        self._grid = Grid(number_str)
+        self._grid = GridModel(number_str)
         self._view = GridView(self._master, 9, 600)
 
         self._view.bind("<Button-1>", self.left_click)
@@ -388,7 +427,7 @@ class SudokuController(object):
         self._timer.start_timing()
 
     def redraw(self) -> None:
-        self._view.draw_grid(self._grid.guesses, self._grid.notes, self._grid.hint_locations)
+        self._view.draw_grid(self._grid.guesses, self._grid.notes, self._grid.given_locations)
 
     def left_click(self, event) -> None:
         try:
@@ -439,11 +478,11 @@ class SudokuApp(object):  # need on_window_close() to stop timer
 
 
 def main():
+    global app
     root = tk.Tk()
     app = SudokuApp(root)
     # root.protocol("WM_DELETE_WINDOW", app.on_window_close)
     root.mainloop()
-
 
 if __name__ == '__main__':
     main()
