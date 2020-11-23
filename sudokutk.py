@@ -8,9 +8,9 @@ Position = Tuple[int, int]
 OptPosition = Tuple[Optional[int], Optional[int]]
 
 # some sample sudoku num found on wikipedia
-# SAMPLE_NUMBER_STR = \
-#     "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
 SAMPLE_NUMBER_STR = \
+    "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
+SAMPLE_NUMBER_STR2 = \
     "435269781682571493197834562826195347374682915951743628519326874248957006763418259"
 
 
@@ -47,7 +47,7 @@ class BaseGrid(object):
         return [[[] for j in range(9)] for i in range(9)]
 
     @staticmethod
-    def _current_3x3square_bounds(row, col) -> Tuple[int, int, int, int]:
+    def _3x3square_bounds(row, col) -> Tuple[int, int, int, int]:
         """
         Returns beginning and end indices for row, col in the current 3x3 square
         selected.
@@ -64,6 +64,18 @@ class BaseGrid(object):
 
     def notes_at(self, row, col) -> List[int]:
         return self.notes[row][col]
+
+    def is_number_duplicate(self, row, col, num) -> bool:
+        """:returns: Whether the same number exists in the same row, col or 3x3 square."""
+        for index in range(9):
+            if self.guess_at(index, col) == num or self.guess_at(row, index) == num:
+                return True
+        row_start, row_end, col_start, col_end = self._3x3square_bounds(row, col)
+        for i in range(row_start, row_end):
+            for j in range(col_start, col_end):
+                if self.guess_at(i, j) == num:
+                    return True
+        return False
 
     def sudoku_complete(self) -> bool:
         for index in range(9):
@@ -89,6 +101,8 @@ class BaseGrid(object):
 class GridSolver(BaseGrid):
     def __init__(self, number_str: str):
         super().__init__(number_str)
+        self.backtrack = []  # explain this somehow
+        self._next_cell_flag = False  # flag
 
     def calculate_possibilities(self) -> None:
         """Calculates possibilities for each non-given cell and saves in self.notes.
@@ -98,17 +112,60 @@ class GridSolver(BaseGrid):
         """
         for cell_row, cell_col in self.no_given_locations:
             choices = set(i for i in range(1, 10))
-            for index in range(9):  # rows, cols
+            # rows, cols
+            for index in range(9):
                 number_on_col = self.guess_at(cell_row, index)
                 number_on_row = self.guess_at(index, cell_col)
                 if number_on_col in choices:
                     choices.remove(number_on_col)
                 if number_on_row in choices:
                     choices.remove(number_on_row)
-            
+            # 3x3 square
+            row_start, row_end, col_start, col_end = self._3x3square_bounds(cell_row, cell_col)
+            for i in range(row_start, row_end):
+                for j in range(col_start, col_end):
+                    number_in_square = self.guess_at(i, j)
+                    if number_in_square in choices:
+                        choices.remove(number_in_square)
+            self.notes[cell_row][cell_col] = list(choices)
 
+    def _solve_algorithm(self) -> None:
+        """oh boy"""
+        self.backtrack = []
+        while len(self.backtrack) != len(self.no_given_locations):
+            this_cell_row, this_cell_col = self.no_given_locations[len(self.backtrack)]
 
+            if self._next_cell_flag or len(self.backtrack) == 0:
+                self._next_cell_flag = False
+                next_possible_idx = 0
+            else:
+                next_possible_idx = self.backtrack[-1] + 1
 
+            while True:
+                if next_possible_idx == len(self.notes_at(this_cell_row, this_cell_col)):
+                    # possibilities exhausted for this cell, backtrack
+                    if len(self.backtrack) == 0:
+                        raise ValueError("Unsolvable")
+                    prev_cell_row, prev_cell_col = \
+                        self.no_given_locations[len(self.backtrack) - 1]
+                    self.guesses[prev_cell_row][prev_cell_col] = 0
+                    self.backtrack.pop()
+                    break
+                else:
+                    next_possible_guess = \
+                        self.notes_at(this_cell_row, this_cell_col)[next_possible_idx]
+                    if self.is_number_duplicate(this_cell_row, this_cell_col, next_possible_guess):
+                        next_possible_idx += 1
+                        # continue
+                    else:
+                        self.guesses[this_cell_row][this_cell_col] = next_possible_guess
+                        self.backtrack.append(next_possible_idx)
+                        self._next_cell_flag = True
+                        break
+
+    def solve(self) -> None:
+        self.calculate_possibilities()
+        self._solve_algorithm()
 
 
 class GridModel(BaseGrid):
@@ -148,7 +205,7 @@ class GridModel(BaseGrid):
             if index != row and num in self.notes_at(index, col):
                 self.notes[index][col].remove(num)
         # search through same square
-        row_start, row_end, col_start, col_end = self._current_3x3square_bounds(row, col)
+        row_start, row_end, col_start, col_end = self._3x3square_bounds(row, col)
         for i in range(row_start, row_end):
             for j in range(col_start, col_end):
                 if i != row and j != col and num in self.notes_at(i, j):
@@ -484,5 +541,12 @@ def main():
     # root.protocol("WM_DELETE_WINDOW", app.on_window_close)
     root.mainloop()
 
+def test():
+    g = GridSolver(SAMPLE_NUMBER_STR)
+    g.solve()
+    print(g.guesses)
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    test()
