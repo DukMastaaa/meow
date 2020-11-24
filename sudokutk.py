@@ -12,7 +12,14 @@ SAMPLE_NUMBER_STR = \
     "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
 SAMPLE_NUMBER_STR2 = \
     "435269781682571493197834562826195347374682915951743628519326874248957006763418259"
+SAMPLE_NUMBER_STR3 = \
+    "435269781682571493197834562826195347374682915951743628519326004248957006763418259"
 
+SAMPLE_NUMBER_STR4 = \
+    "435269781000071493197834562826005347374600005951743608510000004248957006763000000"
+
+SAMPLE_NUMBER_STR5 = \
+    "400000000000009000000000785007048050001300000006070000860000903700005062003700000"
 
 class BaseGrid(object):
     def __init__(self, number_str: str):
@@ -53,10 +60,10 @@ class BaseGrid(object):
         selected.
         :returns: Tuple with elements (row_start, row_end, col_start, col_end)
         """
-        row_start = row // 3
-        row_end = row_start + 1
-        col_start = col // 3
-        col_end = col_start + 1
+        row_start = 3 * (row // 3)
+        row_end = row_start + 3
+        col_start = 3 * (col // 3)
+        col_end = col_start + 3
         return row_start, row_end, col_start, col_end
 
     def guess_at(self, row, col) -> int:
@@ -129,42 +136,65 @@ class GridSolver(BaseGrid):
                         choices.remove(number_in_square)
             self.notes[cell_row][cell_col] = list(choices)
 
+    def guess_simple_possibilities(self) -> None:
+        """Guesses cells that only have 1 possible value, and calculates possibilities
+        again until it can't be simplified further.
+        """
+        while True:
+            simplified_success = False
+            for i, p_row in enumerate(self.notes):
+                for j, p_col in enumerate(p_row):
+                    if len(p_col) == 1:
+                        self.guesses[i][j] = p_col[0]
+                        self.no_given_locations.remove((i, j))
+                        simplified_success = True
+            self.notes = self._create_notes()
+            self.calculate_possibilities()
+            if not simplified_success:
+                break
+            # todo: refactor so while has conditional
+
     def _solve_algorithm(self) -> None:
         """oh boy"""
         self.backtrack = []
-        while len(self.backtrack) != len(self.no_given_locations):
-            this_cell_row, this_cell_col = self.no_given_locations[len(self.backtrack)]
-
-            if self._next_cell_flag or len(self.backtrack) == 0:
-                self._next_cell_flag = False
-                next_possible_idx = 0
-            else:
-                next_possible_idx = self.backtrack[-1] + 1
-
-            while True:
-                if next_possible_idx == len(self.notes_at(this_cell_row, this_cell_col)):
-                    # possibilities exhausted for this cell, backtrack
-                    if len(self.backtrack) == 0:
-                        raise ValueError("Unsolvable")
-                    prev_cell_row, prev_cell_col = \
-                        self.no_given_locations[len(self.backtrack) - 1]
-                    self.guesses[prev_cell_row][prev_cell_col] = 0
-                    self.backtrack.pop()
-                    break
-                else:
-                    next_possible_guess = \
-                        self.notes_at(this_cell_row, this_cell_col)[next_possible_idx]
-                    if self.is_number_duplicate(this_cell_row, this_cell_col, next_possible_guess):
-                        next_possible_idx += 1
-                        # continue
+        faulty_index = 0  # how on earth do i explain this
+        # while len(self.backtrack) != len(self.no_given_locations):
+        for beans2 in range(10):
+            with open('beans.txt', 'w') as file:
+                for beans in range(100000):
+                    this_cell_row, this_cell_col = self.no_given_locations[len(self.backtrack)]
+                    if self._next_cell_flag or len(self.backtrack) == 0:
+                        self._next_cell_flag = False
+                        next_possible_idx = 0
                     else:
-                        self.guesses[this_cell_row][this_cell_col] = next_possible_guess
-                        self.backtrack.append(next_possible_idx)
-                        self._next_cell_flag = True
-                        break
+                        next_possible_idx = faulty_index + 1
+                    while True:
+                        if next_possible_idx >= len(self.notes_at(this_cell_row, this_cell_col)):
+                            # possibilities exhausted for this cell, backtrack
+                            if len(self.backtrack) == 0:
+                                raise ValueError("Unsolvable")
+                            prev_cell_row, prev_cell_col = \
+                                self.no_given_locations[len(self.backtrack) - 1]
+                            self.guesses[prev_cell_row][prev_cell_col] = 0
+                            faulty_index = self.backtrack[-1]
+                            self.backtrack.pop()
+                            break
+                        else:
+                            next_possible_guess = \
+                                self.notes_at(this_cell_row, this_cell_col)[next_possible_idx]
+                            if self.is_number_duplicate(this_cell_row, this_cell_col, next_possible_guess):
+                                next_possible_idx += 1
+                            else:
+                                self.guesses[this_cell_row][this_cell_col] = next_possible_guess
+                                self.backtrack.append(next_possible_idx)
+                                self._next_cell_flag = True
+                                break
+                    file.write(str(self.backtrack))
+                    file.write("\n")
 
     def solve(self) -> None:
         self.calculate_possibilities()
+        self.guess_simple_possibilities()
         self._solve_algorithm()
 
 
@@ -542,7 +572,7 @@ def main():
     root.mainloop()
 
 def test():
-    g = GridSolver(SAMPLE_NUMBER_STR)
+    g = GridSolver(SAMPLE_NUMBER_STR5)
     g.solve()
     print(g.guesses)
 
