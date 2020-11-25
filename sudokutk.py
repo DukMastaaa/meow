@@ -21,6 +21,13 @@ SAMPLE_NUMBER_STR4 = \
 SAMPLE_NUMBER_STR5 = \
     "400000000000009000000000785007048050001300000006070000860000903700005062003700000"
 
+SAMPLE_NUMBER_STR6 = \
+    "000000000430680000709000280006300009075408130200001500028000306000026017090000000"
+
+SAMPLE_NUMBER_STR7 = \
+    "000000000902003080471020030060037008000048050090006700000009007800600304000054000"
+
+
 class BaseGrid(object):
     def __init__(self, number_str: str):
         """
@@ -140,7 +147,8 @@ class GridSolver(BaseGrid):
         """Guesses cells that only have 1 possible value, and calculates possibilities
         again until it can't be simplified further.
         """
-        while True:
+        simplified_success = True
+        while simplified_success:
             simplified_success = False
             for i, p_row in enumerate(self.notes):
                 for j, p_col in enumerate(p_row):
@@ -150,47 +158,28 @@ class GridSolver(BaseGrid):
                         simplified_success = True
             self.notes = self._create_notes()
             self.calculate_possibilities()
-            if not simplified_success:
-                break
-            # todo: refactor so while has conditional
 
-    def _solve_algorithm(self) -> None:
-        """oh boy"""
-        self.backtrack = []
-        faulty_index = 0  # how on earth do i explain this
-        # while len(self.backtrack) != len(self.no_given_locations):
-        for beans2 in range(10):
-            with open('beans.txt', 'w') as file:
-                for beans in range(100000):
-                    this_cell_row, this_cell_col = self.no_given_locations[len(self.backtrack)]
-                    if self._next_cell_flag or len(self.backtrack) == 0:
-                        self._next_cell_flag = False
-                        next_possible_idx = 0
-                    else:
-                        next_possible_idx = faulty_index + 1
-                    while True:
-                        if next_possible_idx >= len(self.notes_at(this_cell_row, this_cell_col)):
-                            # possibilities exhausted for this cell, backtrack
-                            if len(self.backtrack) == 0:
-                                raise ValueError("Unsolvable")
-                            prev_cell_row, prev_cell_col = \
-                                self.no_given_locations[len(self.backtrack) - 1]
-                            self.guesses[prev_cell_row][prev_cell_col] = 0
-                            faulty_index = self.backtrack[-1]
-                            self.backtrack.pop()
-                            break
-                        else:
-                            next_possible_guess = \
-                                self.notes_at(this_cell_row, this_cell_col)[next_possible_idx]
-                            if self.is_number_duplicate(this_cell_row, this_cell_col, next_possible_guess):
-                                next_possible_idx += 1
-                            else:
-                                self.guesses[this_cell_row][this_cell_col] = next_possible_guess
-                                self.backtrack.append(next_possible_idx)
-                                self._next_cell_flag = True
-                                break
-                    file.write(str(self.backtrack))
-                    file.write("\n")
+    def _find_empty(self):
+        for i in range(9):
+            for j in range(9):
+                if self.guess_at(i, j) == 0:
+                    return i, j  # row, col
+        return None
+
+    def _solve_algorithm(self):
+        """from https://www.techwithtim.net/tutorials/python-programming/sudoku-solver-backtracking/"""
+        find = self._find_empty()
+        if not find:
+            return True
+        else:
+            row, col = find
+        for i in range(1, 10):
+            if not self.is_number_duplicate(row, col, i):
+                self.guesses[row][col] = i
+                if self._solve_algorithm():
+                    return True
+                self.guesses[row][col] = 0
+        return False
 
     def solve(self) -> None:
         self.calculate_possibilities()
@@ -202,15 +191,15 @@ class GridModel(BaseGrid):
     def __init__(self, number_str: str):
         super().__init__(number_str)
 
-    def _remove_guess(self, row, col) -> None:
+    def _remove_guess_at_cell(self, row, col) -> None:
         self.guesses[row][col] = 0
 
-    def _remove_all_notes(self, row, col) -> None:
+    def _remove_notes_at_cell(self, row, col) -> None:
         self.notes[row][col].clear()
 
     def clear_cell(self, row, col) -> None:
-        self._remove_guess(row, col)
-        self._remove_all_notes(row, col)
+        self._remove_guess_at_cell(row, col)
+        self._remove_notes_at_cell(row, col)
 
     def _remove_one_note(self, row, col, num) -> None:
         self.notes[row][col].remove(num)
@@ -247,7 +236,7 @@ class GridModel(BaseGrid):
     def toggle_guess(self, row, col, num) -> None:
         if (row, col) not in self.given_locations:
             if self.guess_at(row, col) == num:
-                self._remove_guess(row, col)
+                self._remove_guess_at_cell(row, col)
             else:
                 if self.notes_at(row, col):
                     self.notes[row][col].clear()
@@ -256,7 +245,7 @@ class GridModel(BaseGrid):
 
 
 class GridView(tk.Canvas):
-    def __init__(self, master: tk.Tk, grid_size: int, board_width: int = 600, *args, **kwargs):
+    def __init__(self, master, grid_size: int, board_width: int = 600, *args, **kwargs):
         super().__init__(master, bg="white", width=board_width, height=board_width, *args, **kwargs)
         self._master = master
         self._grid_size = grid_size
@@ -265,7 +254,7 @@ class GridView(tk.Canvas):
 
         self._BORDER_WIDTH = 1
         self._DIVIDER_THICKNESS = 4
-        self._DIVIDER_POS = (
+        self._DIVIDER_POS = (  # hard-code time :sunglasses:
             ((0, 3), (8, 3)), ((0, 6), (8, 6)),
             ((3, 0), (3, 8)), ((6, 0), (6, 8))
         )
@@ -367,7 +356,7 @@ class GridView(tk.Canvas):
 
     def draw_grid(self, guesses: List[List[int]], notes: List[List[List[int]]],
                   given_locations: List[Position]) -> None:
-        self.delete(tk.ALL)  # ineffiicenttnttt aaaaaaaaaaaaaaaaaaaaaaaaa
+        self.delete(tk.ALL)
         for row in range(self._grid_size):
             for col in range(self._grid_size):
                 self._draw_one_cell((row, col))
@@ -408,6 +397,7 @@ class ToggleButton(tk.Button):
 
 class StopwatchFrame(tk.Frame):
     """Represents the section of the status bar which displays the time elapsed."""
+
     def __init__(self, parent, starting_time: int = 0) -> None:
         self._parent = parent
         super().__init__(self._parent)
@@ -488,14 +478,24 @@ class StopwatchFrame(tk.Frame):
 class SudokuController(object):
     def __init__(self, master: tk.Tk, number_str: str) -> None:
         self._master = master
+        self._outer_frame = tk.Frame(self._master)
+        self._outer_frame.pack(side=tk.TOP)
 
-        self._timer = StopwatchFrame(self._master, 0)
-        self._timer.pack(side=tk.TOP)
+        # top frame
+        self._top_frame = tk.Frame(self._outer_frame)
+        self._top_frame.pack(side=tk.TOP, expand=True, fill=tk.X)
+        self._sudoku_label = tk.Label(self._top_frame, text="Sudoku", font=("Arial", 18))
+        self._sudoku_label.pack(side=tk.LEFT, expand=True)
+        self._timer = StopwatchFrame(self._top_frame, 0)
+        self._timer.pack(side=tk.LEFT, expand=True)
+        self._newgame_button = tk.Button(self._top_frame, text="New Game", command=self.new_game)
+        self._newgame_button.pack(side=tk.LEFT, expand=True)
 
+        # grid and view
         self._note_mode = tk.BooleanVar()
         self._note_mode.set(False)
         self._grid = GridModel(number_str)
-        self._view = GridView(self._master, 9, 600)
+        self._view = GridView(self._outer_frame, 9, 630)
 
         self._view.bind("<Button-1>", self.left_click)
         bind_helper = lambda num: (lambda e: self.number_press(num))
@@ -508,9 +508,25 @@ class SudokuController(object):
         self._view.pack(side=tk.TOP, anchor=tk.N)
         self.redraw()
 
-        self._note_button = ToggleButton(self._master, self._note_mode, text="note mode")
-        self._note_button.pack(side=tk.TOP)
+        # bottom frame
+        self._bottom_frame = tk.Frame(self._outer_frame)
+        self._bottom_frame.pack(side=tk.TOP, expand=True, fill=tk.X)
+        self._controls_button = tk.Button(
+            self._bottom_frame, text="Controls", command=self.controls_help
+        )
+        self._controls_button.pack(side=tk.LEFT, expand=True)
+        self._note_button = ToggleButton(self._bottom_frame, self._note_mode, text="Note Mode")
+        self._note_button.pack(side=tk.LEFT, expand=True)
+        self._clear_cell_button = tk.Button(
+            self._bottom_frame, text="Clear Cell", command=self.backspace
+        )
+        self._clear_cell_button.pack(side=tk.LEFT, expand=True)
+        self._hint_button = tk.Button(
+            self._bottom_frame, text="Get Hint", command=self.get_hint
+        )
+        self._hint_button.pack(side=tk.LEFT, expand=True)
 
+        # other
         self._timer.start_timing()
 
     def redraw(self) -> None:
@@ -528,8 +544,10 @@ class SudokuController(object):
         self.redraw()
 
     def backspace(self) -> None:
-        self._grid.clear_cell(*self._view.get_selected_cell())
-        self.redraw()
+        selected_cell = self._view.get_selected_cell()
+        if selected_cell != (None, None):
+            self._grid.clear_cell(*selected_cell)
+            self.redraw()
 
     def escape(self) -> None:
         self._view.set_selected_cell((None, None))
@@ -548,6 +566,23 @@ class SudokuController(object):
             self.redraw()
             self.check_valid()
 
+    def controls_help(self) -> None:
+        messagebox.showinfo(
+            "Controls",
+            "Click on cell to select, esc to deselect\n"
+            "Numbers 1-9 to input number\n"
+            "Backspace/delete to remove number\n"
+            "n to toggle between note and guess mode"
+        )
+
+    def get_hint(self) -> None:
+        print('beans')
+        pass
+
+    def new_game(self) -> None:
+        print('beans')
+        pass
+
     def check_valid(self) -> None:
         if self._grid.sudoku_complete():
             self.stop_game()
@@ -565,18 +600,18 @@ class SudokuApp(object):  # need on_window_close() to stop timer
 
 
 def main():
-    global app
     root = tk.Tk()
     app = SudokuApp(root)
     # root.protocol("WM_DELETE_WINDOW", app.on_window_close)
     root.mainloop()
 
+
 def test():
-    g = GridSolver(SAMPLE_NUMBER_STR5)
+    g = GridSolver(SAMPLE_NUMBER_STR)
     g.solve()
     print(g.guesses)
 
 
 if __name__ == '__main__':
-    # main()
-    test()
+    main()
+    # test()
