@@ -12,11 +12,11 @@ These are UQ Buildings organised by number.
 
 ### Contents
 
-[1 Forgan Smith Building](#1 Forgan Smith Building)
-	[E East Side](#E East Side)
-	[W West Side](#W West Side)
+[1 Forgan Smith Building](#1-Forgan-Smith-Building)
+	[E East Side](#E-East-Side)
+	[W West Side](#W-West-Side)
 
-[2 Duhig Tower](#2 Duhig Tower)
+[2 Duhig Tower](#2-Duhig-Tower)
 
 
 
