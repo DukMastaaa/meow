@@ -13,8 +13,10 @@ These are UQ Buildings organised by number.
 ### Contents
 
 [1 Forgan Smith Building](#1-Forgan-Smith-Building)
-	[E East Side](#E-East-Side)
-	[W West Side](#W-West-Side)
+
+​	[E East Side](#E-East-Side)
+
+​	[W West Side](#W-West-Side)
 
 [2 Duhig Tower](#2-Duhig-Tower)
 
@@ -78,7 +80,49 @@ Anthropology stuff is all here. Majority of the higher floors are just offices a
 
 Rating: 6/10
 
+### 11 James and Mary Emelia Mayne Centre (Art Museum)
 
+The exhibitions here are pretty great, and it's free entry for everyone. There's a small study/eating area in the building next to the entrance but I wouldn't recommend as it's not quiet due to noises from outside and in the museum.
+
+Rating: 7/10
+
+### 12 Duhig North
+
+(aka Central Library)
+
+Usually very full during semester, levels 1-2 are not quiet. It would be nice to secure a spot on the higher levels but I wouldn't use it as a regular study spot.
+
+Rating: 4/10
+
+### 12A Duhig Link
+
+why is this its own building lol, same rating as Duhig North
+
+Rating: 4/10
+
+### 14 Sir Llew Edwards Building
+
+Level 1 is okay, haven't been to the other floors. Must explore
+
+### 16 Radon Pavillion
+
+...what?! what is this place? is this just a roofed area?! must explore...
+
+### 17 Learning Innovation Building
+
+No study spots here - just big seminar/conference rooms.
+
+I dislike this building because from the outside, it looks like you can connect from there to Physics Annexe because they're at the same level. But, there's a 0.5m gap between them, and you can only get up there through the Physics Annexe tower thing. :cry:
+
+Rating: 4/10
+
+### 20 Global Change Institute Building
+
+Very cool building, but not for study. Would highly recommend having a look, especially the observation room on level 0. There are some corridors connecting to Steele which are a good place to explore, but make sure you only go through rooms you can access.
+
+Rating: 7/10
+
+###  
 
 ## Ranking
 
