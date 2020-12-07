@@ -48,7 +48,7 @@ PARITIES = {  # true indicates odd
 
 
 def better_part_b():
-    # going to adapt part_b with some strategy from get_ids
+    # going to adapt part_b with some strategy from part_a
     number_len = len(numbers)
     triplet = [False, False]
     for end_index in range(1, number_len + 1):
