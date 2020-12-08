@@ -1,5 +1,5 @@
 import re
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, List, Tuple
 
 TARGET = "shiny gold"
 BAG_PATTERN_WHOLE = re.compile(r"^(.+) bags contain (.+)\.$")
@@ -58,7 +58,7 @@ def part_a_algorithm(contained: Dict[Optional[str], Set[str]]) -> Set[str]:
     return confirmed
 
 
-def part_b_parser() -> Dict[str, Optional[str]]:
+def part_b_parser() -> Dict[str, List[Tuple[int, str]]]:
     contains = {}
     with open("input/q7.txt", "r") as file:
         for line in file:
@@ -66,9 +66,10 @@ def part_b_parser() -> Dict[str, Optional[str]]:
             if line:
                 outer_bag_name, beans = BAG_PATTERN_WHOLE.match(line).groups()
                 if beans == "no other bags":
-                    contains[outer_bag_name] = None
+                    contains[outer_bag_name] = [(0, "")]
                 else:
                     matches = BAG_PATTERN_RIGHT.findall(beans)
+                    matches = [(int(num), inner_bag_name) for num, inner_bag_name in matches]
                     contains[outer_bag_name] = matches
     return contains
 
@@ -80,9 +81,20 @@ def part_a():
 
 
 def part_b():
-    contains = part_b_parser()
+    def part_b_algorithm(bag_name):
+        if contains[bag_name][0][0] == 0:
+            return 0
+        else:
+            return sum(
+                num + num * part_b_algorithm(inside_bag_name)
+                for num, inside_bag_name in contains[bag_name]
+            )
 
+    contains = part_b_parser()
+    result = part_b_algorithm(TARGET)
+    return result
 
 
 if __name__ == '__main__':
     print(part_a())
+    print(part_b())
