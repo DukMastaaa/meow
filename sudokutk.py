@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from math import floor
 from typing import List, Optional, Tuple
+from random import sample
 
 Pixel = Tuple[int, int]
 Position = Tuple[int, int]
@@ -29,8 +30,15 @@ SAMPLE_NUMBER_STR7 = \
 
 
 class BaseGrid(object):
-    def __init__(self, number_str: str):
-        """
+    def __init__(self):
+        self.guesses = None
+        self.given_locations = None
+        self.no_given_locations = None
+        self.notes = None
+
+    def create_board(self, number_str: str) -> None:
+        """Creates stuff like self.guesses, self.given_locations etc.
+
         :param number_str: string with numbers in row-major order.
                            blanks should be 0.
         """
@@ -114,7 +122,8 @@ class BaseGrid(object):
 
 class GridSolver(BaseGrid):
     def __init__(self, number_str: str):
-        super().__init__(number_str)
+        super().__init__()
+        self.create_board(number_str)
         self.backtrack = []  # explain this somehow
         self._next_cell_flag = False  # flag
 
@@ -187,9 +196,54 @@ class GridSolver(BaseGrid):
         self._solve_algorithm()
 
 
+class GridGenerator(object):
+    """Generates a Sudoku grid.
+
+    Code adapted from https://stackoverflow.com/a/56581709
+    """
+
+    def __init__(self, givens: int):
+        assert givens >= 17  # minimum no. of givens for solvable sudoku
+        self.givens = givens
+
+    @staticmethod
+    def _board_pattern(row, col) -> int:
+        """Returns 012345678 for each row, shifted right one digit each row down.
+
+        Apparently, using a board like this as a template only allows generation of
+        a subset of the whole solution space but ehhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
+        """
+        return (3 * (row % 3) + row // 3 + col) % 9
+
+    @staticmethod
+    def _shuffle(iterable):
+        return sample(iterable, len(iterable))
+
+    def _generate_full_board(self) -> str:
+        """Returns a fully generated sudoku board as a string in row-major order."""
+        number_range = range(3)
+        rows = [g * 3 + r for g in number_range for r in number_range]
+        cols = [g * 3 + c for g in number_range for c in number_range]
+        numbers = range(1, 10)
+
+        # produce board using randomized baseline pattern
+        board = [[numbers[self._board_pattern(r, c)] for c in cols] for r in rows]
+        return "".join("".join(str(num) for num in line) for line in board)
+
+    def _remove_numbers(self, solver: "GridSolver", number_str: str) -> str:
+        pass
+
+    def generate(self):
+        """there's some structuring issues here"""
+        full_number_str = self._generate_full_board()
+
+
+
+
 class GridModel(BaseGrid):
     def __init__(self, number_str: str):
-        super().__init__(number_str)
+        super().__init__()
+        self.create_board(number_str)
 
     def _remove_guess_at_cell(self, row, col) -> None:
         self.guesses[row][col] = 0
