@@ -1,32 +1,13 @@
 import tkinter as tk
 from tkinter import messagebox
+from tkinter import simpledialog
 from math import floor
 from typing import List, Optional, Tuple
-from random import sample
+from random import sample, randint, choice
 
 Pixel = Tuple[int, int]
 Position = Tuple[int, int]
 OptPosition = Tuple[Optional[int], Optional[int]]
-
-# some sample sudoku num found on wikipedia
-SAMPLE_NUMBER_STR = \
-    "530070000600195000098000060800060003400803001700020006060000280000419005000080079"
-SAMPLE_NUMBER_STR2 = \
-    "435269781682571493197834562826195347374682915951743628519326874248957006763418259"
-SAMPLE_NUMBER_STR3 = \
-    "435269781682571493197834562826195347374682915951743628519326004248957006763418259"
-
-SAMPLE_NUMBER_STR4 = \
-    "435269781000071493197834562826005347374600005951743608510000004248957006763000000"
-
-SAMPLE_NUMBER_STR5 = \
-    "400000000000009000000000785007048050001300000006070000860000903700005062003700000"
-
-SAMPLE_NUMBER_STR6 = \
-    "000000000430680000709000280006300009075408130200001500028000306000026017090000000"
-
-SAMPLE_NUMBER_STR7 = \
-    "000000000902003080471020030060037008000048050090006700000009007800600304000054000"
 
 
 class BaseGrid(object):
@@ -36,7 +17,17 @@ class BaseGrid(object):
         self.no_given_locations = None
         self.notes = None
 
-    def create_board(self, number_str: str) -> None:
+    def reset(self) -> None:
+        self.guesses = None
+        self.given_locations = None
+        self.no_given_locations = None
+        self.notes = None
+
+    def get_number_str(self) -> str:
+        """Turns self.guesses into a string of numbers in row-major order"""
+        return "".join("".join(str(num) for num in line) for line in self.guesses)
+
+    def setup(self, number_str: str) -> None:
         """Creates stuff like self.guesses, self.given_locations etc.
 
         :param number_str: string with numbers in row-major order.
@@ -121,9 +112,13 @@ class BaseGrid(object):
 
 
 class GridSolver(BaseGrid):
-    def __init__(self, number_str: str):
+    def __init__(self):
         super().__init__()
-        self.create_board(number_str)
+        self.backtrack = None
+        self._next_cell_flag = None
+
+    def setup(self, number_str: str) -> None:
+        super().setup(number_str)
         self.backtrack = []  # explain this somehow
         self._next_cell_flag = False  # flag
 
@@ -196,13 +191,18 @@ class GridSolver(BaseGrid):
         self._solve_algorithm()
 
 
-class GridGenerator(object):
+class GridGenerator(BaseGrid):
     """Generates a Sudoku grid.
 
     Code adapted from https://stackoverflow.com/a/56581709
     """
 
-    def __init__(self, givens: int):
+    def __init__(self):
+        super().__init__()
+        self.givens = None
+        self.solved_number_str = None
+
+    def set_givens(self, givens: int):
         assert givens >= 17  # minimum no. of givens for solvable sudoku
         self.givens = givens
 
@@ -219,31 +219,47 @@ class GridGenerator(object):
     def _shuffle(iterable):
         return sample(iterable, len(iterable))
 
-    def _generate_full_board(self) -> str:
-        """Returns a fully generated sudoku board as a string in row-major order."""
+    def _generate_full_board(self):
+        """Generates a full sudoku board and stores it in self.guesses"""
         number_range = range(3)
-        rows = [g * 3 + r for g in number_range for r in number_range]
-        cols = [g * 3 + c for g in number_range for c in number_range]
+        rows = [g * 3 + r for g in self._shuffle(number_range) for r in self._shuffle(number_range)]
+        cols = [g * 3 + c for g in self._shuffle(number_range) for c in self._shuffle(number_range)]
         numbers = range(1, 10)
 
         # produce board using randomized baseline pattern
-        board = [[numbers[self._board_pattern(r, c)] for c in cols] for r in rows]
-        return "".join("".join(str(num) for num in line) for line in board)
+        self.guesses = [[numbers[self._board_pattern(r, c)] for c in cols] for r in rows]
 
-    def _remove_numbers(self, solver: "GridSolver", number_str: str) -> str:
-        pass
+    def _remove_numbers(self) -> None:
+        filled_cells = 9**2
+        removed_cells = []
+        solver = GridSolver()
+        while filled_cells > self.givens:
+            # yikes this is inefficient
+            row = randint(0, 8)
+            col = randint(0, 8)
+            if (row, col) not in removed_cells:
+                temp = self.guesses[row][col]
+                self.guesses[row][col] = 0
+                solver.reset()
+                solver.setup(self.get_number_str())
+                solver.solve()
+                if not solver.sudoku_complete():
+                    self.guesses[row][col] = temp
+                else:
+                    filled_cells -= 1
 
     def generate(self):
         """there's some structuring issues here"""
-        full_number_str = self._generate_full_board()
-
-
+        self.reset()
+        self._generate_full_board()
+        self.solved_number_str = self.get_number_str()
+        self._remove_numbers()
 
 
 class GridModel(BaseGrid):
     def __init__(self, number_str: str):
         super().__init__()
-        self.create_board(number_str)
+        self.setup(number_str)
 
     def _remove_guess_at_cell(self, row, col) -> None:
         self.guesses[row][col] = 0
@@ -376,7 +392,7 @@ class GridView(tk.Canvas):
     def _draw_given(self, position: Position, number: int) -> None:
         text_x, text_y = self._get_centre_coordinate(position)
         self.create_text(
-            text_x, text_y, anchor=tk.CENTER, fill="blue", font="Arial", text=str(number)
+            text_x, text_y, anchor=tk.CENTER, fill="blue", font=("Arial", 20), text=str(number)
         )
 
     def _draw_notes(self, position: Position, notes: List[int]) -> None:
@@ -526,11 +542,10 @@ class StopwatchFrame(tk.Frame):
         self._time_display_label.config(text=self.format_time(self._current_time))
 
 
-# todo: timer, difficulty setting, help
-
-
 class SudokuController(object):
-    def __init__(self, master: tk.Tk, number_str: str) -> None:
+    DEFAULT_GIVENS = 50
+
+    def __init__(self, master: tk.Tk) -> None:
         self._master = master
         self._outer_frame = tk.Frame(self._master)
         self._outer_frame.pack(side=tk.TOP)
@@ -542,13 +557,21 @@ class SudokuController(object):
         self._sudoku_label.pack(side=tk.LEFT, expand=True)
         self._timer = StopwatchFrame(self._top_frame, 0)
         self._timer.pack(side=tk.LEFT, expand=True)
-        self._newgame_button = tk.Button(self._top_frame, text="New Game", command=self.new_game)
+        self._newgame_button = tk.Button(self._top_frame, text="New Game", command=self.new_game_dialog)
         self._newgame_button.pack(side=tk.LEFT, expand=True)
 
-        # grid and view
+        # generation and grid
         self._note_mode = tk.BooleanVar()
         self._note_mode.set(False)
-        self._grid = GridModel(number_str)
+
+        self._generator = GridGenerator()
+        self._solver = GridSolver()
+
+        self._grid = None
+        self._solved_grid_number_str = None
+        self._new_game(self.DEFAULT_GIVENS)
+
+        # view and binds
         self._view = GridView(self._outer_frame, 9, 630)
 
         self._view.bind("<Button-1>", self.left_click)
@@ -558,6 +581,13 @@ class SudokuController(object):
         self._master.bind("<BackSpace>", lambda e: self.backspace())
         self._master.bind("<Escape>", lambda e: self.escape())
         self._master.bind("n", lambda e: self.toggle_note_mode())
+        self._master.bind("<Left>", lambda e: self.arrow("L"))
+        self._master.bind("<Right>", lambda e: self.arrow("R"))
+        self._master.bind("<Up>", lambda e: self.arrow("U"))
+        self._master.bind("<Down>", lambda e: self.arrow("D"))
+        self._master.bind("g", lambda e: self.new_game_dialog())
+        self._master.bind("h", lambda e: self.controls_help())
+        self._master.bind("t", lambda e: self.get_hint())
 
         self._view.pack(side=tk.TOP, anchor=tk.N)
         self.redraw()
@@ -580,9 +610,6 @@ class SudokuController(object):
         )
         self._hint_button.pack(side=tk.LEFT, expand=True)
 
-        # other
-        self._timer.start_timing()
-
     def redraw(self) -> None:
         self._view.draw_grid(self._grid.guesses, self._grid.notes, self._grid.given_locations)
 
@@ -597,9 +624,26 @@ class SudokuController(object):
             self._view.set_selected_cell((None, None))
         self.redraw()
 
+    def arrow(self, direction: str) -> None:
+        selected_cell = self._view.get_selected_cell()
+        if selected_cell == (None, None):
+            self._view.set_selected_cell((0, 0))
+        else:
+            row, col = selected_cell
+            if direction == "L" and col > 0:
+                col -= 1
+            elif direction == "R" and col < 8:
+                col += 1
+            elif direction == "U" and row > 0:
+                row -= 1
+            elif direction == "D" and row < 8:
+                row += 1
+            self._view.set_selected_cell((row, col))
+        self.redraw()
+
     def backspace(self) -> None:
         selected_cell = self._view.get_selected_cell()
-        if selected_cell != (None, None):
+        if selected_cell != (None, None) and selected_cell not in self._grid.given_locations:
             self._grid.clear_cell(*selected_cell)
             self.redraw()
 
@@ -623,19 +667,53 @@ class SudokuController(object):
     def controls_help(self) -> None:
         messagebox.showinfo(
             "Controls",
-            "Click on cell to select, esc to deselect\n"
-            "Numbers 1-9 to input number\n"
-            "Backspace/delete to remove number\n"
-            "n to toggle between note and guess mode"
+            """\
+            Click on cell to select, esc to deselect
+            Numbers 1-9 to input number
+            Backspace/delete to remove number
+            n to toggle between note and guess mode
+            Arrow keys to move selected cell around
+            g for new game
+            h for this help information
+            t for hint
+            """
         )
 
     def get_hint(self) -> None:
-        print('beans')
-        pass
+        grid_number_str = self._grid.get_number_str()
+        zeroes = [index for index, char in enumerate(grid_number_str) if char == "0"]
+        if not zeroes:
+            return None
+        hint_index = choice(zeroes)
+        row = hint_index // 9
+        col = hint_index % 9
+        self._grid.toggle_guess(row, col, self._solved_grid_number_str[hint_index])
+        self._grid.given_locations.append((row, col))
+        self._grid.no_given_locations.remove((row, col))
+        self.redraw()
+        self.check_valid()
 
-    def new_game(self) -> None:
-        print('beans')
-        pass
+    def new_game_dialog(self) -> None:
+        # todo: 17 <= givens <= 80
+        givens = simpledialog.askinteger(
+            "New Game", "Enter in number of given cells"
+        )
+        self._new_game(givens)
+        self.redraw()
+
+    def _new_game(self, givens: int) -> None:
+        """Actually generates the new game"""
+        self._timer.stop_timing()
+        self._timer.set_time(0)
+        self._generator.reset()
+        self._generator.set_givens(givens)
+        self._generator.generate()
+
+        generated_number_str = self._generator.get_number_str()
+        self._grid = GridModel(generated_number_str)
+        self._solved_grid_number_str = self._generator.solved_number_str
+
+        self._timer.start_timing()
 
     def check_valid(self) -> None:
         if self._grid.sudoku_complete():
@@ -647,25 +725,17 @@ class SudokuController(object):
         messagebox.showinfo(title=f"nice", message=f"gj, you took {finish_time}!")
 
 
-class SudokuApp(object):  # need on_window_close() to stop timer
+class SudokuApp(object):
     def __init__(self, master: tk.Tk) -> None:
         self._master = master
-        self.controller = SudokuController(self._master, SAMPLE_NUMBER_STR)
+        self.controller = SudokuController(self._master)
 
 
 def main():
     root = tk.Tk()
     app = SudokuApp(root)
-    # root.protocol("WM_DELETE_WINDOW", app.on_window_close)
     root.mainloop()
-
-
-def test():
-    g = GridSolver(SAMPLE_NUMBER_STR)
-    g.solve()
-    print(g.guesses)
 
 
 if __name__ == '__main__':
     main()
-    # test()
