@@ -5,10 +5,16 @@ FLOOR = "."
 EMPTY = "L"
 OCCUPIED = "#"
 SWITCH = {EMPTY: OCCUPIED, OCCUPIED: EMPTY}
-DIRECTIONS = [
-    "RIGHT", "LEFT", "UP", "DOWN",
-    "UP-RIGHT", "UP-LEFT", "DOWN-RIGHT", "DOWN-LEFT"
-]
+DIRECTIONS = {  # (y, x)
+    "RIGHT": (0, 1),
+    "LEFT": (0, -1),
+    "UP": (-1, 0),
+    "DOWN": (1, 0),
+    "UP-RIGHT": (-1, 1),
+    "UP-LEFT": (-1, -1),
+    "DOWN-RIGHT": (1, 1),
+    "DOWN-LEFT": (1, -1)
+}
 
 
 class Grid(object):
@@ -34,13 +40,33 @@ class Grid(object):
             return None
         return row, col
 
-    def count_occupied_neighbours(self, pos):
+    def count_occupied_neighbours_near(self, pos):
         count = 0
         for direction in DIRECTIONS:
             neighbour = self.pos_in_direction(pos, direction)
             if neighbour is not None:
                 if self.at(*neighbour) == OCCUPIED:
                     count += 1
+        return count
+
+    def look_in_direction(self, original_pos, direction) -> bool:
+        """returns whether there's an occupied seat when looking in `direction`"""
+        row, col = original_pos
+        add_y, add_x = DIRECTIONS[direction]
+        while 0 <= row < self.height and 0 <= col < self.width:
+            if self.at(row, col) == OCCUPIED and not (row, col) == original_pos:
+                return True
+            elif self.at(row, col) == EMPTY and not (row, col) == original_pos:
+                return False
+            row += add_y
+            col += add_x
+        return False
+
+    def count_occupied_neighbours_far(self, pos):
+        count = 0
+        for direction in DIRECTIONS:
+            if self.look_in_direction(pos, direction):
+                count += 1
         return count
 
 
@@ -54,16 +80,38 @@ def get_grid():
     return grid
 
 
-def part_a():
+def change_grid_to_occupied(grid) -> None:
+    """optimises things a bit"""
+    for i in range(grid.height):
+        for j in range(grid.width):
+            if grid.at(i, j) == EMPTY:
+                grid.grid[i][j] = OCCUPIED
+
+
+def solve(part: str):
+    """part: "a" or "b"."""
     grid = Grid(get_grid())
+    change_grid_to_occupied(grid)
     changed_positions = []
+    if part == "a":
+        adjacent_threshold = 4
+        count_function = grid.count_occupied_neighbours_near
+    elif part == "b":
+        adjacent_threshold = 5
+        count_function = grid.count_occupied_neighbours_far
+    else:
+        return "what"
+
     while True:
         for i in range(grid.height):
             for j in range(grid.width):
                 char = grid.at(i, j)
-                if char == EMPTY and grid.count_occupied_neighbours((i, j)) == 0:
+                if char == FLOOR:
+                    continue
+                count_calculated = count_function((i, j))
+                if char == EMPTY and count_calculated == 0:
                     changed_positions.append((i, j))
-                elif char == OCCUPIED and grid.count_occupied_neighbours((i, j)) >= 4:
+                elif char == OCCUPIED and count_calculated >= adjacent_threshold:
                     changed_positions.append((i, j))
         if changed_positions:
             for pos in changed_positions:
@@ -72,14 +120,9 @@ def part_a():
             changed_positions.clear()
         else:
             break
-
-    # occupied = 0
-    # for i in range(grid.height):
-    #     for j in range(grid.width):
-    #         if grid.at(i, j) == OCCUPIED:
-    #             occupied += 1
     return sum(grid.at(i, j) == OCCUPIED for i in range(grid.height) for j in range(grid.width))
 
 
 if __name__ == '__main__':
-    print(part_a())
+    print(solve('a'))
+    print(solve('b'))
