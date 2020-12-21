@@ -104,7 +104,6 @@ def part_b():
                 if determined_field in possible:
                     possible.remove(determined_field)
 
-
     return reduce(
         lambda x, y: x * y,
         (value for index, value in enumerate(my_ticket)
