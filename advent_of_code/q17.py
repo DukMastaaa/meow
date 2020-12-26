@@ -1,59 +1,75 @@
+from itertools import product  # extremely cool
+
+
 ACTIVE = "#"
 INACTIVE = "."
-SWITCH = {ACTIVE: INACTIVE, INACTIVE: ACTIVE}
 
 
 def get_neighbour_indexes(position):
-    x, y, z = position
-    for z_index in range(z - 1, z + 2):
-        for y_index in range(y - 1, y + 2):
-            for x_index in range(x - 1, x + 2):
-                new_position = (x_index, y_index, z_index)
-                if new_position != position:
-                    yield new_position
+    ranges = [range(coordinate - 1, coordinate + 2) for coordinate in position]
+    for new_position in product(*ranges):
+        if new_position != position:
+            yield new_position
 
 
-def parse():
+def parse(dim):
     grid = {}
     with open("input/q17.txt", "r") as file:
         for line_index, line in enumerate(file):
             line = line.rstrip()
             if line:
-                # just gonna take top-left as (0,0,0), doesn't matter
+                # just gonna take top-left as origin, doesn't matter
                 for char_index, char in enumerate(line):
-                    grid[(char_index, line_index, 0)] = char
+                    grid[(char_index, line_index) + (0,) * (dim - 2)] = char
     return grid
 
 
-def part_a():
-    grid = parse()
-    pos_to_change = []
-    pos_to_add = []
-    for _ in range(6):  # 6 cycles
-        pos_to_change.clear()
+def solve(dim, cycles):
+    grid = parse(dim)
+    pos_to_add = set()
+    pos_to_turn_active = []
+    pos_to_turn_inactive = []
+
+    for _ in range(cycles):
         pos_to_add.clear()
+        pos_to_turn_active.clear()
+        pos_to_turn_inactive.clear()
+
+        for pos in grid.keys():
+            for neighbour in get_neighbour_indexes(pos):
+                if neighbour not in grid:
+                    pos_to_add.add(neighbour)
+        for pos in pos_to_add:
+            grid[pos] = INACTIVE
+
         for pos in grid.keys():
             active_count = 0
             for neighbour in get_neighbour_indexes(pos):
                 if neighbour in grid:
                     if grid[neighbour] == ACTIVE:
                         active_count += 1
-                else:
-                    pos_to_add.append(neighbour)
             if grid[pos] == ACTIVE:
                 if active_count < 2 or active_count > 3:
-                    pos_to_change.append(pos)
+                    pos_to_turn_inactive.append(pos)
             else:  # INACTIVE
                 if active_count == 3:
-                    pos_to_change.append(pos)
+                    pos_to_turn_active.append(pos)
 
-        for pos in pos_to_change:
-            old_state = grid[pos]
-            grid[pos] = SWITCH[old_state]
-        for pos in pos_to_add:
+        for pos in pos_to_turn_inactive:
             grid[pos] = INACTIVE
-    return sum(int(value == ACTIVE) for value in grid.values())
+        for pos in pos_to_turn_active:
+            grid[pos] = ACTIVE
+    return sum(int(grid[pos] == ACTIVE) for pos in grid)
+
+
+def part_a():
+    return solve(3, 6)
+
+
+def part_b():
+    return solve(4, 6)
 
 
 if __name__ == '__main__':
     print(part_a())
+    print(part_b())
