@@ -26,19 +26,18 @@ def part_b():
     for i in range(len(buses)):
         if buses[i] != "x":
             buses[i] = int(buses[i])
-    time_diff_and_buses = [pair for pair in enumerate(buses) if pair[1] != "x"]
-    starting_num = time_diff_and_buses[0][1]
+    time_diff_and_buses = [(pair[0], int(pair[1])) for pair in enumerate(buses) if pair[1] != "x"]
+
+    time = 0
+    multiplier = time_diff_and_buses[0][1]
     time_diff_and_buses.pop(0)
 
-    multiplier = 100000000000000 // starting_num  # cheeky - using a hint from the question
+    for time_diff, bus in time_diff_and_buses:
+        while (time + time_diff) % bus != 0:
+            time += multiplier
+        multiplier *= bus
 
-    while True:
-        starting_time = starting_num * multiplier
-        if (starting_time + starting_num) % time_diff_and_buses[-1][1] == 0:
-            print(starting_time)
-            if all((starting_num * multiplier + diff) % num == 0 for diff, num in time_diff_and_buses):
-                return starting_time
-        multiplier += 1
+    return time
 
 
 """

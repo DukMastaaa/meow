@@ -50,7 +50,7 @@ class Cursor(object):
 
 def setup():
     filelist = []
-    with open('q3.txt', 'r') as file:
+    with open('input/q3.txt', 'r') as file:
         for line in file:
             filelist.append(list(line.strip()))
     board = Board(filelist)

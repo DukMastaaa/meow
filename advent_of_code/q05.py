@@ -25,7 +25,7 @@ def bin_partition(code, upper_init):
 
 def get_ids():
     ids = []
-    with open("q5.txt", "r") as file:
+    with open("input/q5.txt", "r") as file:
         for line in file:
             line = line.rstrip()
             row = bin_partition(line[:7], ROWS_UPPER_INIT)

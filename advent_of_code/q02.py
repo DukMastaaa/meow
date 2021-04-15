@@ -7,7 +7,7 @@ pattern = re.compile(r"(\d+)-(\d+) (\w): (\w+)")
 
 def part_a():
     count = 0
-    with open('q2.txt', 'r') as file:
+    with open('input/q2.txt', 'r') as file:
         for line in file:
             match = pattern.match(line)
             lower, upper, char, password = match.groups()
@@ -19,7 +19,7 @@ def part_a():
 
 def part_b():
     count = 0
-    with open('q2.txt', 'r') as file:
+    with open('input/q2.txt', 'r') as file:
         for line in file:
             match = pattern.match(line)
             lower, upper, char, password = match.groups()

@@ -22,7 +22,7 @@ def one_group_all(group_answers):
 
 def solve(comparison_function):
     count = 0
-    with open("q6.txt", "r") as file:
+    with open("input/q6.txt", "r") as file:
         group_answers = []
         for line in file:
             line = line.rstrip()

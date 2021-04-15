@@ -9,7 +9,7 @@ def part_a():
     count = 0
     fields_for_this_entry = []
 
-    with open("q4.txt", "r") as file:
+    with open("input/q4.txt", "r") as file:
         for line in file:
             line = line.rstrip()
             if not line:
@@ -60,7 +60,7 @@ REGEX_MAGIC = {
 
 def part_b():
     count = 0
-    with open("q4.txt", "r") as file:
+    with open("input/q4.txt", "r") as file:
         fields_for_this_entry = {}
         for line in file:
             line = line.rstrip()
