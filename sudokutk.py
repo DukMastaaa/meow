@@ -646,6 +646,10 @@ class SudokuController(object):
             self._bottom_frame, text="Get Hint", command=self.get_hint
         )
         self._hint_button.pack(side=tk.LEFT, expand=True)
+        self._free_input_button = tk.Button(
+            self._bottom_frame, text="Free Input", command=self._new_free_input_game
+        )
+        self._free_input_button.pack(side=tk.LEFT, expand=True)
 
         # draw the board to finish off
         self.redraw()
@@ -768,16 +772,35 @@ class SudokuController(object):
             if not self.game_has_finished:
                 self._timer.start_timing()
 
-    def _new_game(self, givens: int) -> None:
+    def _new_game(self, givens: int, free_input: bool = False) -> None:
         """Actually generates the new game."""
         self._timer.set_time(0)
-        generated_number_str, solved_number_str = self._generator.generate(givens)
+
+        if free_input:
+            generated_number_str = "0" * 81
+            solved_number_str = "0" * 81
+        else:
+            generated_number_str, solved_number_str = self._generator.generate(givens)
 
         self._grid = GridModel(generated_number_str)
         self._solved_grid_number_str = solved_number_str
 
         self._timer.start_timing()
         self.game_has_finished = False
+
+    def _new_free_input_game(self) -> None:
+        """Clears the board and starts the game in free input mode."""
+        self._timer.set_time(0)
+
+        generated_number_str = "0" * 81
+        solved_number_str = "0" * 81
+
+        self._grid = GridModel(generated_number_str)
+        self._solved_grid_number_str = solved_number_str
+        self._timer.start_timing()
+        self.game_has_finished = False
+
+        self.redraw()        
 
     def check_valid(self) -> None:
         """Helper function to check if the grid is valid."""
