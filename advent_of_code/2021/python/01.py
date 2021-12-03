@@ -2,7 +2,7 @@ from itertools import pairwise
 
 
 def get_input() -> list[int]:
-    with open("../input/01.txt", "r") as file:
+    with open("..\\input\\01.txt", "r") as file:
         data = [int(line.strip()) for line in file if line != ""]
     return data
 
