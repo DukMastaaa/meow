@@ -34,26 +34,24 @@ let q2_transition s cmd =
   | Up, num       -> {horiz = s.horiz; depth = s.depth; aim = s.aim - num}
   | Forward, num  -> {horiz = s.horiz + num; depth = s.depth + s.aim * num; aim = s.aim}
 
-(* let general_solution transition (data: state list) =
+let general_solution transition data =
   let initial_state: state = {horiz = 0; depth = 0; aim = 0} in
   soln_from_state (
-    List.fold_left transition initial_state data
-  ) *)
+    List.fold data ~init:initial_state ~f:transition
+  )
 
-
-(* let parse_data unparsed_data =
+let parse_data unparsed_data =
   let parse_command command =
-    (* let splitted = String.split command ~on:' ' in
-    match splitted with
-    | [dir, num] -> (string_to_direction dir, int_of_string num)
-    | _ -> (Down, 0) *)
-
-    
-  
-  List. *)
-
+    match String.split command ~on:' ' with
+    | [dir; num] -> (string_to_direction dir, int_of_string num)
+    | _ -> (Down, 0)
+  in
+  List.map ~f:parse_command unparsed_data
 
 let () =
-  (* let filename = "../input/02.txt" in
-  let unparsed_data = In_channel.read_lines filename in *)
-  Printf.printf "hello world"
+  let filename = "../input/02.txt" in
+  let unparsed_data = List.map ~f:String.strip (In_channel.read_lines filename) in
+  let data = parse_data unparsed_data in
+  Printf.printf "q1: %s\nq2: %s\n" 
+    (string_of_int (general_solution q1_transition data))
+    (string_of_int (general_solution q2_transition data))
