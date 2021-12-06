@@ -10,6 +10,8 @@ let get_answer day_number =
   match day_number with
   | 1 -> Some (Day01.run filename)
   | 2 -> Some (Day02.run filename)
+  (* | 4 -> Some (Day04.run filename) *)
+  | 6 -> Some (Day06.run filename)
   | _ -> None
 
 let print_answer = function
