@@ -54,6 +54,7 @@ def get_input() -> tuple[list[int], Board]:
     with open("../input/04.txt", "r") as file:
         drawn_numbers = [int(num) for num in file.readline().strip().split(",")]
         file.readline()  # newline
+        
 
         boards = []
         this_board_list = []

@@ -6,7 +6,7 @@ def get_input():
     return data
 
 
-def q(data, iterations: int):
+def general_solution(data, iterations: int):
     c = Counter()
     c.update(data)
 
@@ -21,16 +21,16 @@ def q(data, iterations: int):
 
 if __name__ == "__main__":
     q1data = get_input()
-    print(q(q1data, 256))
+    print(general_solution(q1data, 256))
 
 
-# old
+# old code
 
 
 DEFAULT_LIFETIME = 6
 
 
-def q1(data):
+def q1old(data):
     data = [(n, DEFAULT_LIFETIME) for n in data]
     for _ in range(80):
         # print(",".join(list(str(t[0]) for t in data)))
