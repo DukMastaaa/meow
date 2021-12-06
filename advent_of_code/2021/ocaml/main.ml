@@ -8,6 +8,7 @@ let get_answer day_number =
     ^ ".txt"
   in
   match day_number with
+  | 1 -> Some (Day01.run filename)
   | 2 -> Some (Day02.run filename)
   | _ -> None
 
