@@ -11,8 +11,6 @@ type direction =
   | Up
   | Forward
 
-type command = direction * int
-
 let string_to_direction = function
   | "down" -> Down
   | "up" -> Up
@@ -48,10 +46,7 @@ let parse_data unparsed_data =
   in
   List.map ~f:parse_command unparsed_data
 
-let () =
-  let filename = "../input/02.txt" in
+let run filename =
   let unparsed_data = List.map ~f:String.strip (In_channel.read_lines filename) in
   let data = parse_data unparsed_data in
-  Printf.printf "q1: %s\nq2: %s\n" 
-    (string_of_int (general_solution q1_transition data))
-    (string_of_int (general_solution q2_transition data))
+  (general_solution q1_transition data, general_solution q2_transition data)

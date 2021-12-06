@@ -1,3 +1,4 @@
 (executable
- (name day02)
- (libraries core))
+ (name main)
+ (libraries core)
+ (preprocess (pps ppx_jane)))
