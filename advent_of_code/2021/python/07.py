@@ -7,39 +7,46 @@ def get_input():
     return data
 
 
-def q1objective(data, y):
-    return sum(abs(num - y) for num in data)
-
-
-def q1(data):
+def median(data):
     """
     The median minimises the sum of the absolute deviations, i.e.
     median = argmin_{y in R} sum_{i=1}^{n} |x_i - y|.
     """
+    data = list(sorted(data))
     l = len(data)
     if l % 2 == 1:
-        median = data[l // 2]
+        return data[l // 2]
     else:
-        median = (data[l // 2] + data[l // 2 + 1]) / 2
-    return q1objective(data, median)
+        return (data[l // 2] + data[l // 2 + 1]) / 2
+
+
+def mean(data):
+    """
+    See ../07part2.png.
+    """
+    return sum(data) / len(data)
+
+
+def q1objective(data, y):
+    return sum(abs(num - y) for num in data)
 
 
 def q2objective(data, y):
     return sum(abs(num-y)*(abs(num-y) + 1)/2 for num in data)
 
 
-def q2(data):
-    """
-    See ../07part2.png.
-    """
-    mean = sum(data) / len(data)
-    return min(q2objective(data, floor(mean)), q2objective(data, ceil(mean)))
+def general_solution(data, objective, h_pos_calculator):
+    h_pos = h_pos_calculator(data)
+    return int(min(
+        objective(data, ceil(h_pos)),
+        objective(data, floor(h_pos))
+    ))
 
 
 if __name__ == "__main__":
     data = get_input()
-    print(q1(data))
-    print(q2(data))
+    print(general_solution(data, q1objective, median))  # q1
+    print(general_solution(data, q2objective, mean))    # q2
 
 
 # old code
