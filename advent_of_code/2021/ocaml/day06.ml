@@ -1,7 +1,7 @@
 open Core;;
 
-let print_array arr =
-  Array.iter ~f:(Printf.printf "%d ") !arr
+(* let print_array arr =
+  Array.iter ~f:(Printf.printf "%d ") !arr *)
 
 let transition counter = 
   let next_state = ref (Array.create ~len:9 0) in
