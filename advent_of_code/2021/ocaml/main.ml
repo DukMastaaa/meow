@@ -14,6 +14,7 @@ let get_answer day_number run_test_input =
   (* | 4 -> Some (Day04.run filename) *)
   | 6 -> Some (Day06.run filename)
   | 7 -> Some (Day07.run filename)
+  | 9 -> Some (Day09.run filename)
   | _ -> None
 
 let print_answer = function
