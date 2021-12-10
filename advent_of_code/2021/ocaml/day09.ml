@@ -2,65 +2,66 @@ open Core;;
 
 type position = int * int
 
-(* let print_position (row, col) =
-  Printf.printf "(%d, %d)\n" row col
+let print_list l =
+  List.iter l ~f:(Printf.printf "%d ");
+  Printf.printf "\n"
 
-let print_pos_list l =
-  List.iter l ~f:print_position
+let print_array arr =
+  Array.iter arr ~f:(Printf.printf "%d ");
+  Printf.printf "\n"
 
-let print_array2 arr =
-  Array.iter arr
-    ~f:(fun row ->
-      Array.iter row
-        ~f:(fun num ->
-          Printf.printf "%d " num
-        );
-      Printf.printf "\n"
-    );
-  Printf.printf "\n" *)
+let idx_to_pos _ width index = (index / width, index mod width)
 
-let at_array2 data (row, col) = data.(row).(col)
+let pos_to_idx _ width (row, col) = row * width + col
+
+let idx_is_valid height width idx = 0 <= idx && idx < height * width
 
 let pos_is_valid height width (row, col) =
-  0 <= row && row < height && 0 <= col && col < width
+  0 <= row && row < height && 0 <= col && width < col
 
-let neighbours (row, col) = [(row-1, col); (row+1, col); (row, col-1); (row, col+1)]
+let valid_neighbours height width idx =
+  let row, col = idx_to_pos height width idx in
+  let neighbours = ref [] in
+  if row > 0          then neighbours := (idx - width) :: !neighbours;
+  if col > 0          then neighbours := (idx - 1)     :: !neighbours;
+  if row < height - 1 then neighbours := (idx + width) :: !neighbours;
+  if col < width - 1  then neighbours := (idx + 1)     :: !neighbours;
+  !neighbours
 
-let valid_neighbours pos height width =
-  List.filter (neighbours pos) ~f:(pos_is_valid height width) 
+let all_valid_indices height width  =
+  List.init (height * width) ~f:Fun.id
 
-let all_valid_positions height width  =
-  List.init (height * width) ~f:(fun n -> (n / width, n mod width))
+let indices_not_nine data height width =
+  List.filter (all_valid_indices height width)
+    ~f:(fun idx -> data.(idx) <> 9)
 
-let positions_not_nine data height width =
-  List.filter (all_valid_positions height width)
-    ~f:(fun pos -> at_array2 data pos <> 9)
-
-let get_low_points data pos_not_nine height width =
-  List.filter pos_not_nine
-    ~f:(fun pos -> 
-      List.for_all (valid_neighbours pos height width)
-        ~f:(fun neighbour -> (at_array2 data pos) < (at_array2 data neighbour))
+let get_low_points data idxs_not_nine height width =
+  List.filter idxs_not_nine
+    ~f:(fun idx -> 
+      List.for_all (valid_neighbours height width idx)
+        ~f:(fun neighbour -> (data.(idx)) < (data.(neighbour)))
     )
 
-let rec check_pos pos data height width basin_points =
-  if at_array2 data pos = 9 || Set.Poly.mem basin_points pos
+let rec check_idx idx data height width basin_points =
+  if data.(idx) = 9 || Set.mem basin_points idx
     then basin_points
-  else 
-  List.map (valid_neighbours pos height width)
+  (* else if data.(idx) = 9 then Set.add basin_points idx *)
+  else
+  List.map (valid_neighbours height width idx)
     ~f:(fun neighbour ->
-      check_pos neighbour data height width (Set.Poly.add basin_points pos)
-  )
-  |> List.fold ~init:Set.Poly.empty ~f:Set.Poly.union
+      Printf.printf "%d\n" neighbour;
+      check_idx neighbour data height width (Set.add basin_points idx)
+    )
+  |> List.fold ~init:(Set.empty (module Int)) ~f:Set.union
 
 let q1 data low_points =
-  List.map low_points ~f:(fun pos -> at_array2 data pos + 1)
+  List.map low_points ~f:(fun idx -> data.(idx) + 1)
   |> List.fold ~init:0 ~f:(+)
 
 let q2 data low_points height width =
   let sorted_basin_sizes = List.map low_points 
-      ~f:(fun pos ->
-        let basin_points = check_pos pos data height width (Set.Poly.empty) in
+      ~f:(fun idx ->
+        let basin_points = check_idx idx data height width (Set.empty (module Int)) in
         Set.length basin_points
       )
     |> List.sort ~compare:(fun first second -> Int.compare second first) in
@@ -69,21 +70,21 @@ let q2 data low_points height width =
   | _ -> 0
 
 let parse_data input =
-  List.to_array @@ List.map 
+  let list_of_arrays = List.map 
     ~f:(fun n -> String.strip n |> String.to_array |> Array.map ~f:(fun n -> int_of_char n - 48))
-    input
+    input in
+  let height = List.length list_of_arrays in
+  let width = Array.length (List.hd_exn list_of_arrays) in
+  Array.concat list_of_arrays, height, width
 
 let run filename =
-  let data = parse_data (In_channel.read_lines filename) in
-  let height = Array.length data in
-  let width = Array.length data.(0) in
-  let pos_not_nine = positions_not_nine data height width in
+  let data, height, width = parse_data (In_channel.read_lines filename) in
+  let pos_not_nine = indices_not_nine data height width in
   let low_points = get_low_points data pos_not_nine height width in
-  (* print_array2 data;
-  Printf.printf "low_points\n";
-  print_pos_list low_points;
+  (* Printf.printf "low_points\n";
+  print_list low_points;
   Printf.printf "pos_not_nine\n";
-  print_pos_list pos_not_nine;
+  print_list pos_not_nine;
   Printf.printf "all_valid_positions\n";
-  print_pos_list (all_valid_positions height width); *)
+  print_list (all_valid_indices height width); *)
   (q1 data low_points, q2 data low_points height width)
