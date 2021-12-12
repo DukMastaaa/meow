@@ -63,7 +63,7 @@ let q2 data low_points height width =
 
 let parse_data input =
   let list_of_arrays = List.map 
-    ~f:(fun n -> String.strip n |> String.to_array |> Array.map ~f:(fun n -> int_of_char n - 48))
+    ~f:(fun n -> String.strip n |> String.to_array |> Array.map ~f:(fun n -> int_of_char n - int_of_char '0'))
     input in
   let height = List.length list_of_arrays in
   let width = Array.length (List.hd_exn list_of_arrays) in
