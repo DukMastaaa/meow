@@ -2,14 +2,6 @@ open Core;;
 
 type position = int * int
 
-let print_list l =
-  List.iter l ~f:(Printf.printf "%d ");
-  Printf.printf "\n"
-
-let print_array arr =
-  Array.iter arr ~f:(Printf.printf "%d ");
-  Printf.printf "\n"
-
 let idx_to_pos _ width index = (index / width, index mod width)
 
 let pos_to_idx _ width (row, col) = row * width + col
@@ -22,10 +14,10 @@ let pos_is_valid height width (row, col) =
 let valid_neighbours height width idx =
   let row, col = idx_to_pos height width idx in
   let neighbours = ref [] in
-  if row > 0          then neighbours := (idx - width) :: !neighbours;
-  if col > 0          then neighbours := (idx - 1)     :: !neighbours;
-  if row < height - 1 then neighbours := (idx + width) :: !neighbours;
-  if col < width - 1  then neighbours := (idx + 1)     :: !neighbours;
+  if row >= 1          then neighbours := (idx - width) :: !neighbours;
+  if col >= 1          then neighbours := (idx - 1)     :: !neighbours;
+  if row <= height - 2 then neighbours := (idx + width) :: !neighbours;
+  if col <= width - 2  then neighbours := (idx + 1)     :: !neighbours;
   !neighbours
 
 let all_valid_indices height width  =
@@ -39,32 +31,32 @@ let get_low_points data idxs_not_nine height width =
   List.filter idxs_not_nine
     ~f:(fun idx -> 
       List.for_all (valid_neighbours height width idx)
-        ~f:(fun neighbour -> (data.(idx)) < (data.(neighbour)))
+        ~f:(fun neighbour -> data.(idx) < data.(neighbour))
     )
 
-let rec check_idx idx data height width basin_points =
-  if data.(idx) = 9 || Set.mem basin_points idx
-    then basin_points
-  (* else if data.(idx) = 9 then Set.add basin_points idx *)
-  else
-  List.map (valid_neighbours height width idx)
-    ~f:(fun neighbour ->
-      Printf.printf "%d\n" neighbour;
-      check_idx neighbour data height width (Set.add basin_points idx)
+(** recursively traverses the basin to find all points it contains *)
+let rec traverse_basin idx data height width basin_points =
+  if data.(idx) = 9 || Set.mem basin_points idx then basin_points else
+  let valid = List.filter (valid_neighbours height width idx) 
+    ~f:(fun n -> data.(n) <> 9 && not(Set.mem basin_points n)) in
+  List.fold valid  (* :pog: *)
+    ~init:(Set.add basin_points idx)
+    ~f:(fun new_basin_pts neighbour ->
+        traverse_basin neighbour data height width new_basin_pts
     )
-  |> List.fold ~init:(Set.empty (module Int)) ~f:Set.union
 
 let q1 data low_points =
   List.map low_points ~f:(fun idx -> data.(idx) + 1)
   |> List.fold ~init:0 ~f:(+)
 
 let q2 data low_points height width =
-  let sorted_basin_sizes = List.map low_points 
-      ~f:(fun idx ->
-        let basin_points = check_idx idx data height width (Set.empty (module Int)) in
-        Set.length basin_points
-      )
-    |> List.sort ~compare:(fun first second -> Int.compare second first) in
+  let basin_sizes = List.map low_points 
+    ~f:(fun idx ->
+      traverse_basin idx data height width (Set.empty (module Int))
+      |> Set.length
+    ) in
+  let sorted_basin_sizes = List.sort basin_sizes
+    ~compare:(fun first second -> Int.compare second first) in
   match sorted_basin_sizes with
   | first :: second :: third :: _ -> first * second * third
   | _ -> 0
@@ -81,10 +73,4 @@ let run filename =
   let data, height, width = parse_data (In_channel.read_lines filename) in
   let pos_not_nine = indices_not_nine data height width in
   let low_points = get_low_points data pos_not_nine height width in
-  (* Printf.printf "low_points\n";
-  print_list low_points;
-  Printf.printf "pos_not_nine\n";
-  print_list pos_not_nine;
-  Printf.printf "all_valid_positions\n";
-  print_list (all_valid_indices height width); *)
   (q1 data low_points, q2 data low_points height width)
