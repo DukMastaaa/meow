@@ -17,13 +17,16 @@ let get_answer day_number run_test_input =
   | 9 -> Some (Day09.run filename)
   | _ -> None
 
-let print_answer = function
-  | (q1ans, q2ans) -> Printf.printf "Q1: %d\nQ2: %d\n" q1ans q2ans
+let print_answer (q1ans, q2ans) = Printf.printf "Q1: %d\nQ2: %d\n" q1ans q2ans
 
 let solution_runner day_number run_test_input =
   try
-    match get_answer day_number run_test_input with
-    | Some answer -> print_answer answer
+    let start_time = Time.now () in
+    let result = get_answer day_number run_test_input in
+    let elapsed_time = Time.diff (Time.now ()) start_time |> Time.Span.to_string in
+    match result with
+    | Some answer -> print_answer answer;
+                     Printf.printf "Time elapsed: %s\n" elapsed_time
     | None -> Printf.printf "No solution for day %d.\n" day_number
   with Sys_error s -> Printf.printf "No test input for day %d.\nError: %s\n" day_number s
 
