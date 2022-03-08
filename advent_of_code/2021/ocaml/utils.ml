@@ -28,3 +28,9 @@ let int_of_binary s = int_of_string ("0b" ^ s)
 
 let select_str_from_n s n =
     String.sub s ~pos:n ~len:(String.length s - n)
+
+let floor_divide x y = x / y
+
+let ceil_divide x y =
+  Float.iround_up_exn (float_of_int x /. float_of_int y)
+  

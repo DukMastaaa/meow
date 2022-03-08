@@ -16,6 +16,7 @@ let get_answer day_number run_test_input =
   | 7 -> Some (Day07.run filename)
   | 9 -> Some (Day09.run filename)
   | 16 -> Some (Day16.run filename)
+  | 18 -> Some (Day18.run filename)
   | _ -> None
 
 let print_answer (q1ans, q2ans) = Printf.printf "Q1: %d\nQ2: %d\n" q1ans q2ans
