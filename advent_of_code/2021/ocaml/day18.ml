@@ -193,12 +193,25 @@ module Tree = struct
 end;;
 
 let q1 zippers =
-  List.reduce_exn ~f:(fun z1 z2 -> Tree.add z1 z2 |> Tree.simplify) zippers
+  Array.reduce_exn ~f:(fun z1 z2 -> Tree.add z1 z2 |> Tree.simplify) zippers
   |> fst
   |> Tree.magnitude
 
-let parse_data input = List.map input ~f:Tree.parse
+let q2_brute_force zippers =
+  let indices = List.range 0 (Array.length zippers) in
+  let unique_pairs = List.cartesian_product indices indices
+    |> List.filter ~f:(fun (x, y) -> x <> y) in
+  List.map unique_pairs ~f:(fun (x, y) ->
+    Tree.add zippers.(x) zippers.(y)
+    |> Tree.simplify
+    |> fst
+    |> Tree.magnitude
+  )
+  |> List.max_elt ~compare
+  |> Option.value_exn
+
+let parse_data input = Array.of_list input |> Array.map ~f:Tree.parse
 
 let run filename =
   let zippers = parse_data (In_channel.read_lines filename) in
-  q1 zippers, 0
+  q1 zippers, q2_brute_force zippers
