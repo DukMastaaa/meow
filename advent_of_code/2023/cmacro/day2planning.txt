@@ -1,0 +1,30 @@
+red green blue
+
+(1) ((4,3,0),(1,2,6),(0,2,0))
+
+((0,0,3)(4,0,0)END)
+((1,0,0)(0,1,0)(0,0,1)END)
+((0,2,0)END)
+
+
+Game
+1
+COLON
+3
+blue
+COMMA
+4
+red
+SEMICOLON
+1
+red
+COMMA
+2
+green
+COMMA
+6
+blue
+SEMICOLON
+2
+green
+EOL
