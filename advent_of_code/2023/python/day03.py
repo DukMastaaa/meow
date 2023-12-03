@@ -1,37 +1,46 @@
-from functools import reduce
 import itertools
-
-
-def neighbours(row: int, col: int, height: int, width: int) -> list[tuple[int, int]]:
-    # :rolling_eyes:
-    row_values = [row]
-    col_values = [col]
-    if row != 0:
-        row_values.append(row-1)
-    if row != height - 1:
-        row_values.append(row+1)
-    if col != 0:
-        col_values.append(col-1)
-    if col != width - 1:
-        col_values.append(col+1)
-    output = list(itertools.product(row_values, col_values))
-    output.remove((row, col))  # ugh
-    return output
-
-
-def index_curry(l: list):
-    return lambda idx: l[idx]
+from functools import reduce
+from typing import Iterable
 
 
 def tuple_to_index(row: int, col: int, height: int, width: int) -> int:
     return row * width + col
 
 
-def times(l: set | list):
-    prod = 1
-    for x in l:
-        prod *= x
-    return prod
+def index_to_tuple(index: int, height: int, width: int) -> tuple[int, int]:
+    return index // width, index % width
+
+
+def neighbours(index: int, height: int, width: int) -> list[int]:
+    row, col = index_to_tuple(index, height, width)
+    row_values = []
+    col_values = []
+    
+    if row != 0:
+        row_values.append(row-1)
+    if row != height - 1:
+        row_values.append(row+1)
+    row_values.append(row)
+    
+    if col != 0:
+        col_values.append(col-1)
+    if col != width - 1:
+        col_values.append(col+1)
+    col_values.append(col)
+    
+    # :rolling_eyes:
+    output = list(map(lambda p: tuple_to_index(*p, height, width), itertools.product(row_values, col_values)))
+    output.pop()  # this removes the centre coordinate. ugh
+    return output
+
+
+def select(c: list | dict, keys: Iterable) -> Iterable:
+    for key in keys:
+        yield c[key]
+
+
+def product(l: Iterable):
+    return reduce(lambda x, y: x * y, l)
 
 
 def main():
@@ -41,72 +50,67 @@ def main():
     width = len(l[0])
     
     numbers = []
-    coord_mapping = {}
-    symbol_coords = []
-    gear_coords = []
+    digit_index_to_number_index: dict[int, int] = {}
+    symbol_indices = []
+    gear_indices = []
 
-    acc_number = ""
-    stored_coords = []
-    for row, line in enumerate(l):
-        # duplicated, ugh
-        if acc_number != "":
-            numbers.append(int(acc_number))
-            for coord in stored_coords:
-                coord_mapping[coord] = len(numbers) - 1
-            acc_number = ""
-            stored_coords = []
-        
-        for col, c in enumerate(line):
-            if c.isdigit():
-                acc_number += c
-                stored_coords.append(tuple_to_index(row, col, height, width))
+    start_col = -1
+    for row, line in enumerate(l):      
+        for col, char in enumerate(line):
+            current_index = tuple_to_index(row, col, height, width)
+            if char.isdigit():
+                if start_col == -1:
+                    start_col = col
             else:
-                # if we broke an existing string of numbers
-                if acc_number != "":
-                    numbers.append(int(acc_number))
-                    for coord in stored_coords:
-                        coord_mapping[coord] = len(numbers) - 1
-                    acc_number = ""
-                    stored_coords = []
-                if c != ".":
+                if start_col != -1:
+                    # we broke a string of numbers
+                    numbers.append(int(line[start_col:col]))
+                    for i in range(start_col, col):
+                        digit_index_to_number_index[tuple_to_index(row, i, height, width)] = len(numbers) - 1
+                    start_col = -1
+                if char != ".":
                     # symbol
-                    symbol_coords.append((row, col))
-                    if c == "*":
-                        gear_coords.append((row, col))
+                    symbol_indices.append(current_index)
+                    if char == "*":
+                        gear_indices.append(current_index)
+        col = len(line)
+        # duplicated for end of line check. ugh
+        if start_col != -1:
+            numbers.append(int(line[start_col:col]))
+            for i in range(start_col, col):
+                digit_index_to_number_index[tuple_to_index(row, i, height, width)] = len(numbers) - 1
+            start_col = -1
     
-    # now loop through symbols
-    part_number_indices = set()
-
-    symbol_to_adjacent_part_number_indices: dict[int, set[int]] = {}
-    for row, col in symbol_coords:
-        for neighbour_row, neighbour_col in neighbours(row, col, height, width):
-            neighbour_hash = tuple_to_index(neighbour_row, neighbour_col, height, width)
-            if neighbour_hash in coord_mapping:
-                symbol_to_adjacent_part_number_indices.setdefault(
-                    tuple_to_index(row, col, height, width),
+    # now find which numbers are adjacent to each symbol
+    symbol_index_to_adjacent_number_indices: dict[int, set[int]] = {}
+    for symbol_index in symbol_indices:
+        for neighbour_index in neighbours(symbol_index, height, width):
+            if neighbour_index in digit_index_to_number_index.keys():
+                symbol_index_to_adjacent_number_indices.setdefault(
+                    symbol_index,
                     set()
                 ).add(
-                    coord_mapping[neighbour_hash]
+                    digit_index_to_number_index[neighbour_index]
                 )
     
-    # add the selected numbers
-    part_number_indices = set(reduce(set.union, symbol_to_adjacent_part_number_indices.values()))
-    q1 = sum(map(index_curry(numbers), part_number_indices))
+    # collate all numbers then sum
+    part_number_indices = reduce(set.union, symbol_index_to_adjacent_number_indices.values())
+    q1 = sum(select(numbers, part_number_indices))
     
-    # to find gears
-    gear_ratios_acc = 0
-    for row, col in gear_coords:
-        gear_hash = tuple_to_index(row, col, height, width)
-        # print(list(map(index_curry(numbers), symbol_to_adjacent_part_number_indices[gear_hash])))
-        if len(symbol_to_adjacent_part_number_indices[gear_hash]) == 2:
-            gear_ratio = reduce(
-                lambda x, y: x * y,
-                map(index_curry(numbers), symbol_to_adjacent_part_number_indices[gear_hash])
+    # "bad style"
+    # this would be so much nicer if i could write as a pipeline
+    q2 = sum(
+        map(
+            lambda set: product(select(numbers, set)),
+            filter(
+                lambda set: len(set) == 2,
+                select(symbol_index_to_adjacent_number_indices, gear_indices)
             )
-            gear_ratios_acc += gear_ratio
-    q2 = gear_ratios_acc
+        )
+    )
     
     return q1, q2
 
 
-print(main())
+if __name__ == "__main__":
+    print(main())
