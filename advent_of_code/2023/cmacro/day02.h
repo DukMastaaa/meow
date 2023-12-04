@@ -22,34 +22,20 @@
 #define DEFERAPPLY(F, ...) F BLANK (__VA_ARGS__)
 #define DEFERNOPAREN(F, x) F BLANK x
 
-// #define CONSUME_GAME(...) CONSUME_GAME_##__VA_ARGS__
-// #define CONSUME_GAME_Game
-// #define PARSE_GAME_NUMBER_1 (1) WRAP OPEN
-// #define PARSE_GAME_NUMBER_2 (2) WRAP OPEN
-// #define WRAP(x) meow x beans
-// #define SPLIT(...) SWAPCAT(CAT(PARSE_NUMBER_, CONSUME_GAME(__VA_ARGS__)), meow)
-// #define MACHINE(...) EVAL0(CAT(PARSE_GAME_NUMBER_, CONSUME_GAME(__VA_ARGS__)) CLOSE)
+// For x == (y), returns y.
+#define UNWRAP(...) UNWRAP_HELPER(__VA_ARGS__)
+#define UNWRAP_HELPER(x) XEVAL0 x
+// Tests:
+// UNWRAP((x, y))
+
+
 
 #define Game LITOPEN
-#define COLON LITCOMMA LITOPEN FOO OPEN
+#define COLON LITCOMMA LITOPEN PARSE OPEN
 #define EOL CLOSE LITCLOSE LITCLOSE
-#define COMMA CLOSE FOO OPEN
-#define SEMICOLON CLOSE LITCLOSE LITOPEN FOO OPEN
+#define COMMA CLOSE PARSE OPEN
+#define SEMICOLON CLOSE LITCLOSE LITOPEN PARSE OPEN
 
-
-
-// #define GET_COLOUR(tokens) CAT(GET_COLOUR_, tokens)
-// #define GET_COLOUR_red red CLOSE
-// #define GET_COLOUR_green green CLOSE
-// #define GET_COLOUR_blue blue CLOSE
-// GET_COLOUR(blue beans blah blah)
-
-
-
-// goal: parse "3 blue" into (0,0,3), "4 red" into (4,0,0), "2 green" into (0,2,0)
-
-
-// #define WORDSPLIT(tokens) EVAL0(CAT(COMMA_AFTER_NUMBER_, tokens))
 #define WORDSPLIT(tokens) CAT(COMMA_AFTER_NUMBER_, tokens)
 #define COMMA_AFTER_NUMBER_0 0 LITCOMMA
 #define COMMA_AFTER_NUMBER_1 1 LITCOMMA
@@ -62,33 +48,27 @@
 #define COMMA_AFTER_NUMBER_8 8 LITCOMMA
 #define COMMA_AFTER_NUMBER_9 9 LITCOMMA
 
-// WORDSPLIT(2 red)
-
 #define WORDCOMBO(number, colour) WORDCOMBO_##colour OPEN number CLOSE
 #define WORDCOMBO_red(number) LITOPEN number LITCOMMA 0 LITCOMMA 0 LITCLOSE
 #define WORDCOMBO_green(number) LITOPEN 0 LITCOMMA number LITCOMMA 0 LITCLOSE
 #define WORDCOMBO_blue(number) LITOPEN 0 LITCOMMA 0 LITCOMMA number LITCLOSE
 
-// EVAL0(WORDCOMBO(3, blue))
-
-// EVAL1(WORDCOMBO(3, blue))
-// EVAL1(WORDCOMBO(4, red))
-// EVAL1(WORDCOMBO(2, green))
-
-#define FOO(tokens) APPLY(WORDCOMBO, WORDSPLIT(tokens))
-
-// FOO(3 blue)
-
+#define PARSE(tokens) APPLY(WORDCOMBO, WORDSPLIT(tokens))
 
 
 #define INPUT Game 1 COLON 3 blue COMMA 4 red SEMICOLON 1 red COMMA 2 green COMMA 6 blue SEMICOLON 2 green EOL
-// #define INPUT Game 1 COLON 3 blue EOL
-INPUT
-EVAL0(INPUT)
-EVAL0(EVAL0(INPUT))
-// EVAL0(EVAL0(EVAL0(INPUT)))
-// EVAL0(EVAL0(EVAL0(EVAL0(INPUT))))
+// INPUT
+// EVAL0(INPUT)
+// EVAL0(EVAL0(INPUT))
 
+#define PARSED_INPUT EVAL1(INPUT)
+
+// PARSED_INPUT
+
+
+// For ... = (x, y), returns (first(x), second(y)).
+#define MAP_PAIR(first, second, ...) MAP_PAIR_HELPER(first, second, __VA_ARGS__)
+#define MAP_PAIR_HELPER(first, second, tuple) 
 
 
 
