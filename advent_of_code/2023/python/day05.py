@@ -15,6 +15,7 @@ if not hasattr(itertools, "batched"):
     setattr(itertools, "batched", batched)
 
 
+# this isn't in stdlib :sob:
 def flatten_list(l: list[list] | Iterable) -> list:
     return list(itertools.chain.from_iterable(l))
 
