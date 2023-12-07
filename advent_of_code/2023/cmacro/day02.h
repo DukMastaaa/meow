@@ -88,7 +88,12 @@
 // ISEMPTY(12 34)   // 0
 // ISEMPTY(ISEMPTY_DETAIL_ARG16)  // error, see requirements on function-like macros
 
-
+// Returns y if x is empty, else x.
+#define DEFAULT_IF_EMPTY(x, y) IF(ISEMPTY(x), y, x)
+// Tests:
+// DEFAULT_IF_EMPTY(BLANK, 123)
+// DEFAULT_IF_EMPTY(456, BLANK)
+// DEFAULT_IF_EMPTY(456, 123)
 
 
 
@@ -117,67 +122,92 @@
 
 /////// Functions on sequences (a)(b)(c)
 
+// For seq = (a)(b)(c), returns a.
+#define HEAD_SEQ(seq) APPLY(HEAD_VARIADIC, APPEND_COMMA seq)
+// For seq = (a)(b)(c), returns (b)(c).
+#define TAIL_SEQ(seq) DEFAULT_IF_EMPTY(APPLY(TAIL_VARIADIC, APPEND_COMMA seq), ())
+#define APPEND_COMMA(x) x ,
+#define HEAD_VARIADIC(x, ...) x
+#define TAIL_VARIADIC(x, ...) __VA_ARGS__
+// Tests:
+// HEAD_SEQ((a)(b)(c))
+// TAIL_SEQ((a)(b)(c))
+// HEAD_SEQ(())
+// TAIL_SEQ(())
+// HEAD_SEQ((a))
+// TAIL_SEQ((a))
+
+// Returns whether the sequence is ().
+#define SEQ_ISEMPTY(seq) ISEMPTY(HEAD_SEQ(seq))
+// Tests:
+// SEQ_ISEMPTY(())
+// SEQ_ISEMPTY((a))
+// SEQ_ISEMPTY((a)(b))
+
 // For seq = (a)(b)(c), returns (f(a))(f(b))(f(c)).
-
-
-// let's start with
-// (a)(b)(c) --> f(a) f(b) f(c)
-
-// #define MAP_SEQ(f, seq) XEVAL(MAP_SEQ_PREFIX1(f) seq LITOPEN LITCLOSE)
-// // do i need va args here?
-// #define MAP_SEQ_EAT(...) __VA_ARGS__ CLOSE
-
-// // single deferral isn't enough delay to wait for the IF
-
-// #define MAP_SEQ_PREFIX1(f) MAP_SEQ_ONCE1 BLANK OPEN f , MAP_SEQ_EAT
-// #define MAP_SEQ_ONCE1(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
-//     LITOPEN f OPEN __VA_ARGS__ CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f))
-
-// #define MAP_SEQ_PREFIX2(f) MAP_SEQ_ONCE2 BLANK OPEN f , MAP_SEQ_EAT
-// #define MAP_SEQ_ONCE2(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
-//     LITOPEN f OPEN __VA_ARGS__ CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX1, f))
-
-
-#define MAP_SEQ(f, seq) XEVAL(MAP_SEQ_PREFIX1(f) seq ( ) )
-// do i need va args here?
-#define MAP_SEQ_EAT(...) __VA_ARGS__ )
-
+#define MAP_SEQ(f, seq) XEVAL(MAP_SEQ_PREFIX1(f) seq LITOPEN LITCLOSE)
+#define MAP_SEQ_EAT(...) __VA_ARGS__ CLOSE
 // single deferral isn't enough delay to wait for the IF
-
-#define MAP_SEQ_PREFIX1(f) MAP_SEQ_ONCE1 BLANK ( f , MAP_SEQ_EAT
+#define MAP_SEQ_PREFIX1(f) MAP_SEQ_ONCE1 BLANK OPEN f , MAP_SEQ_EAT
 #define MAP_SEQ_ONCE1(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
-    ( f ( __VA_ARGS__ ) ) DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f))
-
-#define MAP_SEQ_PREFIX2(f) MAP_SEQ_ONCE1 BLANK ( f , MAP_SEQ_EAT
+    LITOPEN f OPEN __VA_ARGS__ CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f))
+// duplicate for recursion
+#define MAP_SEQ_PREFIX2(f) MAP_SEQ_ONCE2 BLANK OPEN f , MAP_SEQ_EAT
 #define MAP_SEQ_ONCE2(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
-    ( f ( __VA_ARGS__ ) ) DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX1, f))
+    LITOPEN f OPEN __VA_ARGS__ CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX1, f))
+// Tests:
+// #define DOUBLE(x) 2*x
+// MAP_SEQ(f, (a)(b)(c))
+// MAP_SEQ(DOUBLE, (a)(b)(c))
 
-#define DOUBLE(x) 2*x
-MAP_SEQ(f, (a)(b)(c))
-MAP_SEQ(DOUBLE, (a)(b)(c))
-
-
-
-// MAP_SEQ(f, (a))
-// XEVAL0(MAP_SEQ(f, (a)))
-// XEVAL0(XEVAL0(MAP_SEQ(f, (a))))
-
-// MAP_SEQ_ONCE1 ( f , ) ( )
-
-// LITOPEN f OPEN a CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f) ( )
-// IF_FALSE (ISEMPTY(a), LITOPEN f OPEN a CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f)) ( )
-// XEVAL0(IF_FALSE (ISEMPTY(a), LITOPEN f OPEN a CLOSE LITCLOSE DOUBLEDEFERAPPLY(MAP_SEQ_PREFIX2, f)) ( ))
-
-// LITOPEN f OPEN BLANK CLOSE LITCLOSE MAP_SEQ_PREFIX2 BLANK (f)
-
-// IF_FALSE (ISEMPTY(BLANK), LITOPEN f OPEN BLANK CLOSE LITCLOSE APPLY(MAP_SEQ_PREFIX2, f)   MAP_SEQ_PREFIX2 BLANK (f))
-// IF_FALSE (ISEMPTY(BLANK), LITOPEN f OPEN BLANK CLOSE LITCLOSE DEFERAPPLY(MAP_SEQ_PREFIX2, f))
-
+// For seq = (a)(b)(c), returns f(a) f(b) f(c).
+#define MAP_SEQNOPAREN(f, seq) XEVAL(MAP_SEQNOPAREN_PREFIX1(f) seq LITOPEN LITCLOSE)
+#define MAP_SEQNOPAREN_EAT(...) __VA_ARGS__ CLOSE
+// single deferral isn't enough delay to wait for the IF
+#define MAP_SEQNOPAREN_PREFIX1(f) MAP_SEQNOPAREN_ONCE1 BLANK OPEN f , MAP_SEQNOPAREN_EAT
+#define MAP_SEQNOPAREN_ONCE1(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
+    f OPEN __VA_ARGS__ CLOSE DOUBLEDEFERAPPLY(MAP_SEQNOPAREN_PREFIX2, f))
+// duplicate for recursion
+#define MAP_SEQNOPAREN_PREFIX2(f) MAP_SEQNOPAREN_ONCE2 BLANK OPEN f , MAP_SEQNOPAREN_EAT
+#define MAP_SEQNOPAREN_ONCE2(f, ...) IF_FALSE (ISEMPTY(__VA_ARGS__),        \
+    f OPEN __VA_ARGS__ CLOSE DOUBLEDEFERAPPLY(MAP_SEQNOPAREN_PREFIX1, f))
+// Tests:
+// #define DOUBLE(x) 2*x
+// MAP_SEQ(f, (a)(b)(c))
+// MAP_SEQ(DOUBLE, (a)(b)(c))
 
 
-// MAP_SEQ_ONCE BLANK OPEN f , MAP_SEQ_EAT (a)(b)(c) LITOPEN LITCLOSE
-// MAP_SEQ_PREFIX(f) (a)(b)(c) LITOPEN LITCLOSE
+// For seq = (a)(b)(c), returns f(init, f(a, f(b, c)))
+#define FOLDR_SEQ(f, seq, init) XEVAL(FOLDR_SEQ1(f, seq, init))
+#define FOLDR_SEQ1(f, seq, init) IF(SEQ_ISEMPTY(seq), FOLDR_SEQ_INIT, FOLDR_SEQ_CALL2) BLANK (f, seq, init)
+#define FOLDR_SEQ2(f, seq, init) IF(SEQ_ISEMPTY(seq), FOLDR_SEQ_INIT, FOLDR_SEQ_CALL1) BLANK (f, seq, init)
+#define FOLDR_SEQ_INIT(f, seq, init) init
+#define FOLDR_SEQ_CALL1(f, seq, init) f BLANK (init, DEFERAPPLY BLANK ( FOLDR_SEQ2, f, TAIL_SEQ (seq), HEAD_SEQ (seq)))
+#define FOLDR_SEQ_CALL2(f, seq, init) f BLANK (init, DEFERAPPLY BLANK ( FOLDR_SEQ1, f, TAIL_SEQ (seq), HEAD_SEQ (seq)))
 
+// Tests:
+// FOLDR_SEQ(f, (b)(c)(d), a)
+
+#define ADD(x, y) x+y
+FOLDR_SEQ(ADD BLANK, (2)(3)(4)(5), 1)
+
+// EVAL0(FOLDR_SEQ(f, (b)(c)(d), a))
+// EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a)))
+// EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a))))
+// EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a)))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a))))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a)))))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a))))))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a)))))))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a))))))))))
+// EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(EVAL0(FOLDR_SEQ(f, (b)(c)(d), a)))))))))))
+
+// #define LEFT_FN(x) f ( x ,
+// #define RIGHT_FN(x) )
+// #define seq (a)(b)
+// MAP_SEQ(LEFT_FN, seq)
+// MAP_SEQNOPAREN(LEFT_FN, seq)
+// MAP_SEQ(LEFT_FN, seq)  init  MAP_SEQ(RIGHT_FN, seq)
 
 
 
