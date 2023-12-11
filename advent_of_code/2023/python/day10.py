@@ -82,7 +82,7 @@ def pos_in_bounds(pos: tuple[int, int], height: int, width: int) -> bool:
 
 
 # with open("advent_of_code/2023/input/10test.txt", "r") as file:
-with open("../input/10test.txt", "r") as file:
+with open("../input/10.txt", "r") as file:
     l = [s.strip() for s in file.read().strip().split('\n')]
 
 d: dict[tuple[int, int], Tile] = {}
@@ -178,6 +178,7 @@ explore = lambda pos: explore_region(
 )
 
 prev = top_left_pos
+prev_dir = Dir.EAST
 curr = d[top_left_pos].neighbours[Dir.EAST.value].pos  # type: ignore
 while curr != top_left_pos:
     next_dir, next = [
@@ -188,16 +189,42 @@ while curr != top_left_pos:
     next_dir = Dir(next_dir)
     # we travel clockwise.
     explore(pos_in_dir(curr, next_dir.inside_when_clockwise()))
+    explore(pos_in_dir(curr, prev_dir.inside_when_clockwise()))
     # update
     prev = curr
     curr = next
+    prev_dir = next_dir
 
 q2 = sum(map(lambda s: len(s), regions))
 print(q2)
-print(regions)
+# print(regions)
 
 
+TRANSLATOR = {
+    "|": "│",
+    "-": "─",
+    "F": "┌",
+    "7": "┐",
+    "L": "└",
+    "J": "┘",
+    "S": "S",
+    ".": "."
+}
 
 
+# ss = []    
+# for i in range(height):
+#     for j in range(width):
+#         if (i, j) in distances:
+#             ss.append(TRANSLATOR[l[i][j]])
+#             # ss.append(".")
+#         elif (i, j) in pos_to_region:
+#             ss.append("I")
+#         else:
+#             ss.append("O")
+#     ss.append("\n")
+# ss.append("\n")
 
 
+# with open("dump.txt", "wb") as file:
+#     file.write("".join(ss).encode('utf8'))
